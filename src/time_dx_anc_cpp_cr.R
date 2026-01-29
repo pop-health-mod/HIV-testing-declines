@@ -381,3 +381,4 @@ Rcpp::cppFunction('List time_to_dx_cr_cpp(List s_fp,
                   
                   return(val);
                   }')
+
