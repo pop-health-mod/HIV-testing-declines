@@ -18,7 +18,7 @@ hivdemo_proj_list <- readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
 
 
 # adjust for specific country runs, REMOVE CHAD (needs adjusted prior and rr_m)
-cntlist = names(make_country)[-7]
+cntlist = names(make_country)[1]
 
 for (country in make_country) {
   
@@ -81,7 +81,7 @@ for (country in make_country) {
         opt = opt1
         
         # save the opts incase the simulation crashes(very small compared to full simul files)
-        saveRDS(opt, paste0(here::here("outputs"), "/opt/opt_final/test_optimized_par_", cnt))
+        # saveRDS(opt, paste0(here::here("outputs"), "/opt/opt_final/test_optimized_par_", cnt))
         
         # confirm reasonable values for opt
         optimized_par_anc(opt)

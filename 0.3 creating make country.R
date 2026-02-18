@@ -282,7 +282,6 @@ make_country$`Guinea-Bissau`$prgm_dat$vct[make_country$`Guinea-Bissau`$prgm_dat$
 # Ethiopia
 
 names(make_country$Angola$survey_hts)
-names(make_country$`Cote-d'Ivoire`$survey_hts)
 
 load(paste0(here::here("surveys/survey_hts_master(1).rda")))
 surveys_africa = subset(survey_hts_master, country %in% c(names(make_country),
@@ -317,10 +316,11 @@ surv2 = subset(surv2,year %in% 2021)
 
 
 #combine 2 survey components
-make_country$`Cote-d'Ivoire`$survey_hts = rbind(surv1,surv2)
-make_country$`Cote-d'Ivoire`$survey_hts$country = "Cote-d'Ivoire"
-make_country$`Cote-d'Ivoire`$cnt = "Cote-d'Ivoire"
-make_country$`Cote-d'Ivoire`$prgm_dat = "Cote-d'Ivoire"
+make_country$`Côte d'Ivoire`$survey_hts = rbind(surv1,surv2)
+make_country$`Côte d'Ivoire`$survey_hts$country = "Cote-d'Ivoire"
+make_country$`Côte d'Ivoire`$cnt = "Côte d'Ivoire"
+
+
 
 #adjust South Sudan gender
 make_country$`South Sudan`$survey_hts$sex == "female"
@@ -452,7 +452,7 @@ make_country$`South Africa`$survey_hts = surv1
 for (i in 1:length(make_country)) {
   survey_hts1 = make_country[[i]]$survey_hts
   print(names(make_country)[i])
-  print(summary(survey_hts1[,c("est","ci_u","ci_l")]))
+  #print(summary(survey_hts1[,c("est","ci_u","ci_l")]))
 }
 #correct Niger upper ci
 make_country$Niger$survey_hts$ci_u[c(43,48)] = 1.00
@@ -489,11 +489,12 @@ make_country$Botswana$survey_hts$ci_u[(make_country$Botswana$survey_hts$year %in
 make_country[["Swaziland"]]$cnt = "eSwatini"
 make_country[["eSwatini"]] = make_country$Swaziland
 make_country$Swaziland = NULL
-# remove Swaziland
-make_country = make_country[-which(names(make_country) %in% ("Swaziland"))]
 
-# remove cabo verde and mauriania, no ANC data
-make_country = make_country[-which(names(make_country) %in% c("Mauritania","Cape Verde"))]
+# remove Swaziland, swapped for eSwatini
+make_country = make_country[!(names(make_country) %in% ("Swaziland"))]
+# 
+# # remove cabo verde and mauriania, no ANC data
+make_country = make_country[!(names(make_country) %in% c("Mauritania","Cape Verde"))]
 
 # ---- saving ----
 saveRDS(object = make_country, file = here::here('anc testing/data/make_country_presimul.rds'))

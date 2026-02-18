@@ -9,7 +9,7 @@ library(ggnewscale)
 path_out <- here::here("outputs/Paper/volume decline/")
 
 path_anc <- here::here("anc testing")
-make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final.rds"))
+#make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final4.rds"))
 
 source(paste0(path_anc, "/1.1 tot test out.R"))
 
@@ -59,6 +59,8 @@ for (i in 1:length(make_country)) {
   simul_vec_vct[, , i] = as.matrix(simul)
   
 }
+simul_vec_vct[1,1,]
+
 
 didnt_run = vector()
 
@@ -121,7 +123,7 @@ CI_VCT = as.data.frame(CI_VCT)
 colnames(CI_VCT) = c("year", "lci", "uci")
 CI_VCT[, 1] = 2000:2030
 CI_ANC = CI_VCT
-
+j = 1
 for (j in 1:dim(simul_vec_vct)[1]) {
   #need to do this for now( later fix simul creation)
   CI_VCT[j, 2:3] = quantile(apply(simul_vec_vct[j, , , drop = FALSE], 2, sum), c(0.025, 0.975))
@@ -129,13 +131,19 @@ for (j in 1:dim(simul_vec_vct)[1]) {
   
   
 }
-# find declines #2017(18) for vct max and 2021(22) min
+# find declines #2018(19) for vct max and 2021(22) min
 1 - (quantile(
   probs =  c(0.025, 0.5, 0.975),
   x = (apply(simul_vec_vct[22, , , drop = FALSE], 2, sum) /
          apply(simul_vec_vct[19, , , drop = FALSE], 2, sum))
 ))
 
+#find declines 2023(24) and max 2018(19)
+1 - (quantile(
+  probs =  c(0.025, 0.5, 0.975),
+  x = (apply(simul_vec_vct[24, , , drop = FALSE], 2, sum) /
+         apply(simul_vec_vct[19, , , drop = FALSE], 2, sum))
+))
 
 tottests = data.frame(
   Year = vcttestvalue$year,
@@ -834,10 +842,9 @@ plot_africa_maximum_anc_declines = ggplot() +
     plot.title = element_text(
       hjust = 0.5,
       face = "bold",
-      size = 14,
-      legend.key = element_rect(size = 0.1),
-    )
-  ) +
+      size = 14),
+      legend.key = element_rect(size = 0.1)
+    ) +
   labs(title = "Maximum Decline in ANC Testing Volume\nin Percent (%) Over 2015-2023")
 
 plot_africa_maximum_anc_declines
@@ -1092,11 +1099,11 @@ plot_africa_maximum_vct_declines = ggplot() +
       face = "bold",
       # Make the title bold
       size = 14,
-      # Adjust the font size),
+      # Adjust the font size
+      ),
       legend.key = element_rect(size = 0.1),
       
-    )
-  ) +
+    ) +
   
   labs(title = "Maximum Decline in Non-ANC Testing Volume\nin Percent (%) Over 2015-2023")
 
@@ -1340,9 +1347,9 @@ plot_africa_maximum_vct_declines = ggplot() +
       # Make the title bold
       size = 12,
       # Adjust the font size
-      legend.key = element_rect(size = 0.1),
-    )
-  ) +
+      ),
+      legend.key = element_rect(size = 0.1)
+    )+
   geom_sf(
     data = africa_map %>% filter(pepfar == "pepfar"),
     aes(color = pepfar),
@@ -1364,7 +1371,7 @@ plot_africa_maximum_vct_declines
 
 ggsave(
   plot = plot_africa_maximum_vct_declines,
-  file = paste0(path_out, "/plot_africa_vct_maxdecline_with_pepfar"),
+  file = paste0(path_out, "/plot_africa_vct_maxdecline_with_pepfar.png"),
   width = 7,
   height = 7,
   dpi = 700

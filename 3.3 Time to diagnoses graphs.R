@@ -1,6 +1,6 @@
 source("anc testing/0.6 time dx functions.R")
 source("anc testing/1.1 tot test out.R")
-path_out <- here::here("outputs/paper/TDX")
+path_out <- here::here("outputs/paper 2026/TDX")
 
 library(scales)  # Needed for formatting
 library(first90)
@@ -13,13 +13,13 @@ library(ggnewscale)
 
 tdx_agg_simul_male_diff = list()
 tdx_agg_simul_female_diff = list()
-simul_tdxM = readRDS("outputs/2026 ttd/male tdx final observed")
-simul_tdxF = readRDS("outputs/2026 ttd/female tdx final observed.rda")
-simul_tdxB = readRDS("outputs/2026 ttd/both tdx final observed.rda")
+simul_tdxM = readRDS("outputs/male tdx observed.rda")
+simul_tdxF = readRDS("outputs/female tdx observed.rda")
+simul_tdxB = readRDS("outputs/both tdx observed.rda")
 
-simul_tdxMcount = readRDS("outputs/2026 ttd/male tdx final counter.rda")
-simul_tdxFcount = readRDS("outputs/2026 ttd/female tdx final counter.rda")
-simul_tdxBcount = readRDS("outputs/2026 ttd/both tdx final counter.rda")
+simul_tdxMcount = readRDS("outputs/male tdx counter.rda")
+simul_tdxFcount = readRDS("outputs/female tdx counter.rda")
+simul_tdxBcount = readRDS("outputs/both tdx counter.rda")
 
 tdx_agg_simul_male = simul_tdxM
 tdx_agg_simul_female = simul_tdxF
@@ -66,15 +66,13 @@ x = names(make_country)[(names(make_country) %in% countries)]
 x = names(make_country)[!(names(make_country) %in% countries)]
 
 x[!(x %in% names(tdx_agg_simul_both_counter))]
-
-
+  
 
 tdx_agg_simul_male_diff = list()
 tdx_agg_simul_female_diff = list()
 tdx_agg_simul_both_diff = list()
 tdx_agg_simul_diff_diff = list()
 tdx_agg_simul_diff_diff_obs = list()
-
 for (i in 1:length(tdx_agg_simul_male)) {
   cnt = names(tdx_agg_simul_male)[i]
   print(cnt)
@@ -162,14 +160,13 @@ for (i in 1:length(tdx_agg_simul_male_diff)) {
   }
   
 }
-
+0.67378401  * 12
 
 male_agg_diff = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_male_diff, sex = "male")
 female_agg_diff = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_female_diff, sex = "female")
 both_agg_diff = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_both_diff, sex = "male+female")
 diff_agg_diff = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_diff_diff, sex = "male+female")
 diff_agg_diff_obs = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_diff_diff_obs, sex = "male+female")
-
 
 
 pepfarM = Agg_simul_pool_time_dx_prev_2(pepfar_male_ttd, sex = "male")
@@ -192,7 +189,6 @@ for (i in 1:length(tdx_agg_simul_male_counter)) {
   tdx_agg_simul_female_subset[[cnt]] = simul_tdxF[[cnt]]
   tdx_agg_simul_both_subset[[cnt]] = simul_tdxB[[cnt]]
 }
-
 
 
 male_agg = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_male_subset, sex = "male")
@@ -519,8 +515,8 @@ for (j in 1:length(geo_ttd_both$year)) {
       na.value = "white",
       name = "Additional \nyears to\ndiagnosis ",
       direction = -1,
-      limits = c(0, 3.1),
-      breaks = c(seq(0, 3.1, by = 0.6)),
+      limits = c(0, 3.5),
+      breaks = c(seq(0, 3.5, by = 0.5)),
       guide = F
       
     ) +
@@ -589,7 +585,7 @@ for (j in 1:length(geo_ttd_both$year)) {
       path_out,
       "/time to diagnosis africa/plot_africa_ttd_both_",
       year1,
-      " 1 4.png"
+      " .png"
     ),
     width = 5.5,
     height = 6.2,
@@ -675,10 +671,10 @@ plot_africa_ttd = ggplot() +
   scale_fill_viridis_c(
     option = "magma",
     na.value = "white",
-    name = "Additional \nyears to\ndiagnosis ",
+    name = "Additional \nyears to\ndiagnosis",
     direction = -1,
     limits = c(0, 3.1),
-    breaks = c(seq(0, 3.1, by = 0.6))
+    breaks = c(seq(0, 3.1, by = 0.6)),
     
   ) +
   
@@ -729,9 +725,11 @@ plot_africa_ttd = ggplot() +
       hjust = 0.5,
       face = "bold",
       # Center the title
-      size = 16,
-      legend.key = element_rect(size = 0.1),
-    )
+      size = 16),
+    legend.key = element_rect(size = 0.1),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 10)
+    
   ) +
   labs(title = year1) +
   theme()
@@ -992,7 +990,7 @@ ggsave(
   plot = plot1,
   file = paste0(
     path_out,
-    "/pepfar vs non-pepfar additional years of decline 1 4.png"
+    "/pepfar vs non-pepfar additional years of decline.png"
   ),
   dpi = 500,
   height = 5,
@@ -1383,12 +1381,13 @@ plot = ggplot() +
     
     
   )
+
 plot
 
 
 ggsave(
   plot = plot,
-  file = paste0(path_out, "/_tdx_paper both_decline_ 1 4.png"),
+  file = paste0(path_out, "/_tdx_paper both_decline.png"),
   width = 5,
   height = 5,
   dpi = 500,
@@ -1473,7 +1472,7 @@ plot
 
 ggsave(
   plot = plot,
-  file = paste0(path_out, "/_tdx_paper both_decline.png"),
+  file = paste0(path_out, "/_tdx_paper both_decline_no counter.png"),
   width = 5,
   height = 5,
   dpi = 500,

@@ -1,46 +1,43 @@
 library(data.table)
+library(ggplot2)
 source("anc testing/0.5 simul-aware-functions.R")
+source("anc testing/1.0 simmod.R")
 
 
 # set output directory
 path_out <- here::here("outputs/Paper 2026/awareness")
-make_country = readRDS("anc testing/data/make_country_simul_final.rda")
+#make_country = readRDS("anc testing/data/make_country_simul_final5.rds")
 
 
 # ----prep for graphs----
-aware_agg_simul_malefull = readRDS(file = paste0(
-  here::here("outputs"),
-  "/2026 ttd/male aware final observed.rda"
-))
-aware_agg_simul_male_counter = readRDS(file = paste0(here::here("outputs"),
-                                                     "/2026 ttd/male aware final counter.rda"))
-
+aware_agg_simul_malefull <-
+  readRDS(file = paste0(here::here("outputs"),
+                        "/male aware observed.rda"))
+aware_agg_simul_male_counter <-
+  readRDS(file = paste0(here::here("outputs"),
+                        "/male aware counter.rda"))
 aware_agg_simul_femalefull <-
-  readRDS(file = paste0(
-    here::here("outputs"),
-    "/2026 ttd/female aware final observed.rda"
-  ))
+  readRDS(file = paste0(here::here("outputs"),
+                        "/female aware observed.rda"))
 aware_agg_simul_female_counter <-
-  readRDS(file = paste0(
-    here::here("outputs"),
-    "/2026 ttd/female aware final counter.rda"
-  ))
-
+  readRDS(file = paste0(here::here("outputs"),
+                        "/female aware counter.rda"))
 aware_agg_simul_bothfull <-
-  readRDS(file = paste0(
-    here::here("outputs"),
-    "/2026 ttd/both aware final observed.rda"
-  ))
+  readRDS(file = paste0(here::here("outputs"),
+                        "/both aware observed.rda"))
 aware_agg_simul_both_counter <-
   readRDS(file = paste0(here::here("outputs"),
-                        "/2026 ttd/both aware final counter.rda"))
+                        "/both aware counter.rda"))
+
+# aware_agg_simul_male = aware_agg_simul_malefull
+# aware_agg_simul_female = aware_agg_simul_femalefull
+# aware_agg_simul_both = aware_agg_simul_bothfull
 
 aware_agg_simul_male = aware_agg_simul_malefull[names(aware_agg_simul_malefull) %in% names(aware_agg_simul_male_counter)]
 aware_agg_simul_female = aware_agg_simul_femalefull[names(aware_agg_simul_femalefull) %in% names(aware_agg_simul_male_counter)]
 aware_agg_simul_both =  aware_agg_simul_bothfull[names(aware_agg_simul_bothfull) %in% names(aware_agg_simul_both_counter)]
 
 for (cnt in names(aware_agg_simul_bothfull)) {
-  #Due to bug upstream(now corrected)
   aware_agg_simul_female_counter[[cnt]]$out_simul_aware_all$propaware = aware_agg_simul_female_counter[[cnt]]$out_simul_aware_all$value
   aware_agg_simul_male_counter[[cnt]]$out_simul_aware_all$propaware = aware_agg_simul_male_counter[[cnt]]$out_simul_aware_all$value
   aware_agg_simul_both_counter[[cnt]]$out_simul_aware_all$propaware = aware_agg_simul_both_counter[[cnt]]$out_simul_aware_all$value
@@ -141,7 +138,7 @@ aggpooledBothfull = Agg_simul_aware(
   sex = "both"
 )
 
-# ----prop aware male----
+  # ----prop aware male----
 
 
 sex = "Male"
@@ -250,7 +247,7 @@ ggsave(
   dpi = 500,
   scale = 1
 )
-
+#stop()
 
 # ----propaware female----
 sex = "Female"
@@ -639,7 +636,7 @@ propaware_tests_female[, 10] = propaware_tests_female[, 9] - propaware_tests_fem
 propaware_tests_female = as.data.frame(propaware_tests_female)
 rownames(propaware_tests_female) = names(aware_agg_simul_diff_Female)
 
-
+dim(propaware_tests_female[propaware_tests_female$V9>0.95,8:9])[1]
 
 #create dataframe with col1 = name of country, col2 = data(decline)
 africa_anc_data <-
@@ -1188,6 +1185,7 @@ vector_male_miss95 = data.frame(country = vector(),
                                 idxyear = vector())
 for (i in 1:length(aware_agg_simul_male)) {
   a  = Agg_simul_aware(aware_agg_simul_male[[i]], sex = "male")
+  print(max(a$propaware))
   if (any(a$propaware > 0.95)) {
     print(names(aware_agg_simul_male)[i])
     temp = data.frame(country = names(aware_agg_simul_male)[i],
@@ -1679,43 +1677,49 @@ for (i in 1:length(aware_agg_simul_diff_Male)) {
   }
   
 }
-### ----unaware----
+# ----unaware----
+# make_country = readRDS("anc testing/data/make_country_simul_final.rds")
 unaware_pre = as.data.frame(matrix(nrow = 465, ncol = 3000, data = 0))
 unaware_counter_pre = as.data.frame(matrix(nrow = 465, ncol = 3000, data = 0))
 
-
 for (i in 1:length(make_country)) {
-  if (is.null(make_country[[i]]$counter_simul)) {
-    next
-  }
   print(i)
+  print(make_country[[i]]$cnt)
+  
+  if(is.null(make_country[[i]]$counter_simul) & is.null(make_country[[i]]$simul$unaware$unaware)) {
+    print("skipping")
+    next
+  } else if(is.null(make_country[[i]]$simul$unaware$unaware)){
+    make_country[[i]]$simul$unaware$unaware = make_country[[i]]$simul$unaware
+  }
   unaware_pre = unaware_pre + make_country[[i]]$simul$unaware$unaware[, 6:3005]
-  print(sum(make_country[[i]]$simul$unaware$unaware[, 6:3005]))
-  unaware_counter_pre = unaware_counter_pre + make_country[[i]]$counter_simul$unaware$unaware[, 6:3005]
-  print(sum(make_country[[i]]$counter_simul$unaware$unaware[, 6:3005]))
+  #print(make_country[[i]]$simul$unaware$unaware[140:149, 6])
+  unaware_counter_pre = unaware_counter_pre + make_country[[i]]$counter_simul$unaware[, 6:3005]
+  print((make_country[[i]]$simul$unaware$unaware[130:149, 6] - make_country[[i]]$counter_simul$unaware[130:149, 6]))
 }
+
 unaware = cbind(make_country[[i]]$simul$unaware$unaware[, 1:5], unaware_pre)
 unaware_counter = cbind(make_country[[i]]$simul$unaware$unaware[, 1:5], unaware_counter_pre)
 
 #find decrease in both
 unaware_obs_b = subset(getci(unaware), (sex == "both" &
-                                          agegr == "15-49"))
+                                          agegr == "15+"))
 unaware_obs_b$count = "observed"
-unaware_obs_b$mid = subset(cbind(
-  unaware[, (1:5)],
-  apply(
-    X = unaware[, (6:3005)],
-    MARGIN = 1,
-    FUN = stats::quantile,
-    probs = c(0.5),
-    na.rm = TRUE
-  )
-),
-(sex == "both" &
-   agegr == "15-49"))[, 6]
+unaware_obs_b$mid = subset(
+  cbind(
+    unaware[, (1:5)],
+    apply(
+      X = unaware[, (6:3005)],
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )
+  ), (sex == "both" & agegr == "15+")
+)[, 6]
 
 unaware_counter_b = subset(getci(unaware_counter), (sex == "both" &
-                                                      agegr == "15-49"))
+                                                      agegr == "15+"))
 unaware_counter_b$count = "counter"
 unaware_counter_b$mid = subset(cbind(
   unaware_counter[, (1:5)],
@@ -1728,11 +1732,122 @@ unaware_counter_b$mid = subset(cbind(
   )
 ),
 (sex == "both" &
-   agegr == "15-49"))[, 6]
+   agegr == "15+"))[, 6]
+
+#find decrease in both
+unaware_obs_b = subset(getci(unaware), (sex == "both" &
+                                          agegr == "15+"))
+unaware_obs_b$count = "observed"
+unaware_obs_b$mid = subset(
+  cbind(
+    unaware[, (1:5)],
+    apply(
+      X = unaware[, (6:3005)],
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )
+  ), (sex == "both" & agegr == "15+")
+)[, 6]
+
+#find prop of PLHIV due to declines
+unaware_counter_b = subset(getci(cbind(
+  unaware_counter[, (1:5)],
+  (unaware_pre - unaware_counter_pre)/unaware_pre)),
+ (sex == "both" & agegr == "15+"))
+
+ 
+unaware_counter_b$count = "counter"
+unaware_counter_b$mid = subset(cbind(
+  unaware_counter[, (1:5)],
+  apply(
+    X = (unaware_pre - unaware_counter_pre)/unaware_pre,
+    MARGIN = 1,
+    FUN = stats::quantile,
+    probs = c(0.5),
+    na.rm = TRUE
+  )
+),
+(sex == "both" &
+   agegr == "15+"))[, 6]
+
+unaware_counter_b[24,c(9,6,7)]
+
+#find % increase in PLHIV due to declines
+unaware_counter_b = subset(getci(cbind(
+  unaware_counter[, (1:5)],
+  (unaware_pre)/unaware_counter_pre)),
+  (sex == "both" & agegr == "15+"))
+
+
+unaware_counter_b$count = "counter"
+unaware_counter_b$mid = subset(cbind(
+  unaware_counter[, (1:5)],
+  apply(
+    X = (unaware_pre)/unaware_counter_pre,
+    MARGIN = 1,
+    FUN = stats::quantile,
+    probs = c(0.5),
+    na.rm = TRUE
+  )
+),
+(sex == "both" &
+   agegr == "15+"))[, 6]
+
+unaware_counter_b[24,c(9,6,7)]
+
+0.1254025 *8
+# for abstract/paper male/female PLHIV prop
+#find PLHIV prop due to declines
+unaware_male_increase = subset(getci(cbind(
+  unaware_counter[, (1:5)],
+  (unaware_pre - unaware_counter_pre)/unaware_pre)),
+  (sex == "male" & agegr == "15+"))
+
+
+unaware_male_increase$mid = subset(cbind(
+  unaware_counter[, (1:5)],
+  apply(
+    X = (unaware_pre - unaware_counter_pre)/unaware_pre,
+    MARGIN = 1,
+    FUN = stats::quantile,
+    probs = c(0.5),
+    na.rm = TRUE
+  )
+),
+(sex == "male" &
+   agegr == "15+"))[, 6]
+
+unaware_male_increase[24,c(8,6,7)]
+
+#find PLHIV prop due to declines
+unaware_female_increase = subset(getci(cbind(
+  unaware_counter[, (1:5)],
+  (unaware_pre - unaware_counter_pre)/unaware_pre)),
+  (sex == "female" & agegr == "15+"))
+
+
+unaware_female_increase$mid = subset(cbind(
+  unaware_counter[, (1:5)],
+  apply(
+    X = (unaware_pre - unaware_counter_pre)/unaware_pre,
+    MARGIN = 1,
+    FUN = stats::quantile,
+    probs = c(0.5),
+    na.rm = TRUE
+  )
+),
+(sex == "female" &
+   agegr == "15+"))[, 6]
+
+unaware_female_increase[24,c(8,6,7)]
+
+
 
 # for graph
 unaware_obs_m = subset(getci(unaware), (sex == "male" &
-                                          agegr == "15-49"))
+                                          agegr == "15+"))
 unaware_obs_m$count = "observed"
 unaware_obs_m$mid = subset(cbind(
   unaware[, (1:5)],
@@ -1745,10 +1860,10 @@ unaware_obs_m$mid = subset(cbind(
   )
 ),
 (sex == "male" &
-   agegr == "15-49"))[, 6]
+   agegr == "15+"))[, 6]
 
 unaware_counter_m = subset(getci(unaware_counter), (sex == "male" &
-                                                      agegr == "15-49"))
+                                                      agegr == "15+"))
 unaware_counter_m$count = "counter"
 unaware_counter_m$mid = subset(cbind(
   unaware_counter[, (1:5)],
@@ -1761,12 +1876,12 @@ unaware_counter_m$mid = subset(cbind(
   )
 ),
 (sex == "male" &
-   agegr == "15-49"))[, 6]
+   agegr == "15+"))[, 6]
 unaware_m = rbind(unaware_counter_m, unaware_obs_m)
 
 
 unaware_obs_f = subset(getci(unaware), (sex == "female" &
-                                          agegr == "15-49"))
+                                          agegr == "15+"))
 unaware_obs_f$count = "observed"
 unaware_obs_f$mid = subset(cbind(
   unaware[, (1:5)],
@@ -1779,10 +1894,10 @@ unaware_obs_f$mid = subset(cbind(
   )
 ),
 (sex == "female" &
-   agegr == "15-49"))[, 6]
+   agegr == "15+"))[, 6]
 
 unaware_counter_f = subset(getci(unaware_counter), (sex == "female" &
-                                                      agegr == "15-49"))
+                                                      agegr == "15+"))
 unaware_counter_f$count = "counter"
 unaware_counter_f$mid = subset(cbind(
   unaware_counter[, (1:5)],
@@ -1795,7 +1910,7 @@ unaware_counter_f$mid = subset(cbind(
   )
 ),
 (sex == "female" &
-   agegr == "15-49"))[, 6]
+   agegr == "15+"))[, 6]
 unaware_f = rbind(unaware_counter_f, unaware_obs_f)
 
 unaware_m$sex = "Male"
@@ -1804,7 +1919,8 @@ unaware_f$sex = "Female"
 unaware = rbind(unaware_m, unaware_f)
 
 
-
+start_year = 2015
+end_year = 2023
 
 
 unaware_plot = ggplot(unaware) +
@@ -1830,13 +1946,13 @@ unaware_plot = ggplot(unaware) +
   theme_minimal() +
   labs(
     title = paste0(
-      "Volume of Undiagnosed PLHIV\nPooled in Countries with a Decline:\n",
+      "Number of Undiagnosed PLHIV\nPooled in Countries with a Decline:\n",
       start_year,
       "-",
       end_year
     ),
     x = NULL,
-    y = "Volume of Undiagosed PLHIV (millions)"
+    y = "Number of Undiagosed PLHIV (millions)"
   ) +
   scale_linetype_manual(
     name = "Scenario",
@@ -1901,7 +2017,7 @@ unaware_tot = cbind(make_country[[i]]$simul$unaware$unaware[, 1:5],
                     unaware_pre - unaware_counter_pre)
 
 unaware_obs_tot_m = subset(getci(unaware_tot), (sex == "male" &
-                                                  agegr == "15-49"))
+                                                  agegr == "15+"))
 unaware_obs_tot_m$count = "observed"
 unaware_obs_tot_m$mid = subset(cbind(
   unaware_tot[, (1:5)],
@@ -1914,12 +2030,12 @@ unaware_obs_tot_m$mid = subset(cbind(
   )
 ),
 (sex == "male" &
-   agegr == "15-49"))[, 6]
+   agegr == "15+"))[, 6]
 
 
 
 unaware_obs_tot_f = subset(getci(unaware_tot), (sex == "female" &
-                                                  agegr == "15-49"))
+                                                  agegr == "15+"))
 unaware_obs_tot_f$count = "observed"
 unaware_obs_tot_f$mid = subset(cbind(
   unaware_tot[, (1:5)],
@@ -1932,7 +2048,7 @@ unaware_obs_tot_f$mid = subset(cbind(
   )
 ),
 (sex == "female" &
-   agegr == "15-49"))[, 6]
+   agegr == "15+"))[, 6]
 
 
 unaware_obs_tot_m$sex = "Male"
@@ -1990,7 +2106,7 @@ unaware_plot_tot = ggplot(unaware_tot_p) +
       end_year
     ),
     x = NULL,
-    y = "Volume of Undiagosed PLHIV (Thousands)"
+    y = "Number of Undiagosed PLHIV (Thousands)"
   ) +
   scale_fill_manual(name = "Sex",
                     values = c("Male" = "steelblue",
@@ -2024,3 +2140,24 @@ ggsave(
   height = 5,
   dpi = 700
 )
+# find proportion unaware
+unaware_tot = as.data.frame(matrix(nrow = 465, ncol = 3006, data = 0))
+unaware_tot = cbind(make_country[[i]]$simul$unaware$unaware[, 1:5],
+                    unaware_pre - unaware_counter_pre)
+
+unaware_obs_tot_b = subset(getci(unaware_tot), (sex == "both" &
+                                                  agegr == "15+"))
+unaware_obs_tot_m$count = "observed"
+unaware_obs_tot_m$mid = subset(cbind(
+  unaware_tot[, (1:5)],
+  apply(
+    X = unaware_tot[, (6:3005)],
+    MARGIN = 1,
+    FUN = stats::quantile,
+    probs = c(0.5),
+    na.rm = TRUE
+  )
+),
+(sex == "male" &
+   agegr == "15+"))[, 6]
+

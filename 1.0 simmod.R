@@ -1113,7 +1113,7 @@ create_anc_param <- function(theta, fp, pmtct, hivdemo_proj, subvar = list(), ve
     years_since_anc <- proj_end - 2002
     
     # find the number of years which have data, using testing data
-    anc_indx_years <- pmtct$anc_test[!is.na(pmtct$anc_test[2, ])]
+    anc_indx_years <- colnames(pmtct$anc_test)[which(!is.na(pmtct$anc_test[2, ]))]
     anc_data_years <- as.integer(names(pmtct$anc_test)[!(is.na(pmtct$anc_test[2, ])|pmtct$anc_test[2, ] == 0)])
     anc_data_idx <- fp$ss$PROJ_YEARS - (proj_end - anc_data_years)
     
@@ -1124,7 +1124,14 @@ create_anc_param <- function(theta, fp, pmtct, hivdemo_proj, subvar = list(), ve
     valid_cols <- which(!(is.na(pmtct$anc_test[2, ])|pmtct$anc_test[2, ] == 0))  # Faster than repeated indexing
     
     # anc tested and tested anc pos
-    anc_tested <- as.integer(colSums(pmtct$anc_test[c(2,5), valid_cols],na.rm = T))
+    if(length(valid_cols)>1|length(valid_cols) == 0){
+      anc_tested <- as.integer(colSums(pmtct$anc_test[c(2,5), valid_cols],na.rm = T))
+      
+    } else if(length(valid_cols) == 1){
+      anc_tested <- as.integer(sum((pmtct$anc_test[c(2,5), valid_cols]),na.rm = T))
+      
+    }
+    
     anc_pos <- as.integer(pmtct$anc_test[3, valid_cols])
     
     # Extract birth indices 
@@ -1233,6 +1240,8 @@ create_anc_param <- function(theta, fp, pmtct, hivdemo_proj, subvar = list(), ve
     subvar[["adjustment"]] <- or_anc
     subvar[["anc_cov"]] <- anc_cov
     subvar[["diagn_rate_oi"]] <- diagn_rate_oi
+    subvar[["ANC1_overcounting"]] <- ANC1_overcounting
+    
     fp$subvar <- subvar
     
     return(fp)
@@ -1788,7 +1797,7 @@ simul.test.anc <- function(opt, fp, pmtct, hivdemo_proj, sim = 3000, likdat = NU
     return(list(simul = val, samp = samp))
   }
   
-  getci <- function(df) {
+getci <- function(df) {
     start_col <- which(names(df) == "modality") + 1
     if (length(start_col) == 0) { start_col <- 6 }
     n_col <- ncol(df)
@@ -1801,9 +1810,4 @@ simul.test.anc <- function(opt, fp, pmtct, hivdemo_proj, sim = 3000, likdat = NU
     return(df_ci)
   }
   
-
-
-
-
-
 

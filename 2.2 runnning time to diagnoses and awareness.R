@@ -7,13 +7,14 @@ library(tidyverse)
 library(Rcpp)
 
 path_anc <- here::here("anc testing")
-make_country = readRDS(paste0(path_anc,"/data/make_country_simul.rds"))
+make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final5.2.rds"))
 
 # extract the PMTCT information from the Spectrum files
 pmtct_list <- readRDS(paste0(path_anc, "/data/pmtct_list_cnt.rds"))
 
 # extract the HIV/demographic projections
-hivdemo_proj_list <- readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
+hivdemo_proj_list <-
+  readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
 
 
 #define time to diagnoses lists
@@ -34,151 +35,297 @@ aware_agg_simul_female_counter = list()
 aware_agg_simul_both_counter = list()
 
 # select countries to use, for chad it must be run with new parameters (see 2.0 simulating Shiny90)
-cntlist = names(make_country)[-7]
-
+cntlist = names(make_country)[c(18,36)]
+cnt = "Malawi"
 for (i in 1:length(make_country)) {
   cnt = names(make_country)[i]
   print(cnt)
+  
+  #ensure all data frames are clean
+  simul_b_counter = NULL
+  simul_b_counter = NULL
+  simul_b_counter = NULL
+  
+  simul_f = NULL
+  simul_m = NULL
+  simul_b = NULL
+  
+  simul_tdxM_counter = NULL
+  simul_tdxF_counter = NULL
+  simul_tdxB_counter = NULL
+  
+  simul_tdxM = NULL
+  simul_tdxF = NULL
+  simul_tdxB = NULL
+  
   if (cnt %in% cntlist) {
     tryCatch(
       expr = {
-        
         fp <- make_country[[cnt]]$fp
         
         pgrm_dat <-
-          first90::select_prgmdata(make_country[[cnt]]$prgm_dat, 
+          first90::select_prgmdata(make_country[[cnt]]$prgm_dat,
                                    cnt = cnt)
         
         survey_hts <-
-          first90::select_hts(make_country[[cnt]]$survey_hts,
-                              cnt = cnt,
-                              age_group = c('15-24', '25-34', '35-49'))
+          first90::select_hts(
+            make_country[[cnt]]$survey_hts,
+            cnt = cnt,
+            age_group = c('15-24', '25-34', '35-49')
+          )
         
         # define parameters by country
         samp = make_country[[cnt]]$samp
         opt = make_country[[cnt]]$opt
         mod = make_country[[cnt]]$mod
         
-        # we select pmtct data 
+        # we select pmtct data
         pmtct <- pmtct_list[[cnt]]
         
+        names(pmtct$receivepmtct) = as.character(1970:2030)
+        names(pmtct$needpmtct) = as.character(1970:2030)
         
         # we select HIV demo proj
         hivdemo_proj <- hivdemo_proj_list[[cnt]]
         
         
-        # time to diagnosis
-        if (is.null(make_country[[cnt]]$tdx_both)) {
+        #clear all counter factual sample and pmtct
+        samp_1 = NULL
+        pmtct_1 = NULL
+        
+        if (!is.na(counter_years[counter_years$country == cnt,]$start)) {
+          # define counterfactuals
+          counter_years_loop = counter_years[counter_years$country == cnt,]
           
-          simul_tdxF = simul_pool_time_dx_agg_prev(
-            samp,
-            make_country[[cnt]]$mod,
-            make_country[[cnt]]$fp,
-            hivdemo_proj = hivdemo_proj_list[[cnt]],
-            pmtct = pmtct_list[[cnt]],
-            year = 2015:2023,
-            std = F,
-            sex = "female",
-            parallel = T
-          )
-          print(1)
+          # Apply counterfactual opperation to every row of samp
+          samp_new <- function(samp, counter_years_loop) {
+            stopifnot(is.matrix(samp) || is.data.frame(samp))
+            
+            samp <- as.matrix(samp)
+            
+            convert <- (ncol(samp) - 4) / 2
+            
+            start <- as.numeric(counter_years_loop[2])
+            
+            # if NA, end becomes 30(ie no recovery)
+            end <- as.numeric(ifelse(
+              !is.na(counter_years_loop[3]),
+              (as.numeric(counter_years_loop[3]) - 30 - 1),
+              30
+            ))
+            
+            start_female <- start - 30
+            start_dx     <- convert + (start - 40)
+            end_dx       <- start_dx + (end - start_female)
+            
+            clamp <-
+              function(i)
+                max(1, min(ncol(samp), as.integer(i)))
+            
+            sf <- clamp(start_female)
+            e1 <- clamp(min(end, convert))
+            
+            sd <- clamp(start_dx)
+            e2 <- clamp(min(end_dx, convert + convert - 10))
+            
+            # apply to all rows
+            if (sf <= e1)
+              samp[, sf:e1] <- samp[, sf]
+            if (sd <= e2)
+              samp[, sd:e2] <- samp[, sd]
+            
+            samp
+          }
+          if (!is.na(counter_years_loop$start)) {
+            samp_1 = samp_new(samp, counter_years_loop)
+          } else{
+            print("non-counter samp")
+            samp_1 = samp
+          }
+          if (is.na(counter_years_loop$start) &
+              is.na(counter_years[counter_years$country == cnt, 1:3]$start)) {
+            print("skipping")
+            next
+          }
           
-          simul_tdxM = simul_pool_time_dx_agg_prev(
-            samp,
-            mod,
-            fp,
-            hivdemo_proj = hivdemo_proj_list[[cnt]],
-            pmtct = pmtct_list[[cnt]],
-            year = 2015:2023,
-            std = F,
-            sex = "male",
-            parallel = T
-          )
-          print(2)
-          simul_tdxB = simul_pool_time_dx_agg_prev(
-            samp = samp,
-            mod = mod,
-            fp = fp,
-            hivdemo_proj = hivdemo_proj_list[[cnt]],
-            pmtct = pmtct_list[[cnt]],
-            year = 2015:2023,
-            std = F,
-            sex = c("male", "female"),
-            parallel = T
-          )
-          print(3)
+          #counterfactual ANC
           
-          tdx_agg_simul_male[[cnt]]$out_simul_tdx_all = simul_tdxM
-          tdx_agg_simul_female[[cnt]]$out_simul_tdx_all = simul_tdxF
-          tdx_agg_simul_both[[cnt]]$out_simul_tdx_all = simul_tdxB
+          start_anc = counter_years_loop$start
           
-          make_country[[cnt]]$tdx_male$out_simul_tdx_all = simul_tdxM
-          make_country[[cnt]]$tdx_female$out_simul_tdx_all = simul_tdxF
-          make_country[[cnt]]$tdx_both$out_simul_tdx_all = simul_tdxB
+          names(pmtct$anc_test) = as.character(2000:2030)
+          names(pmtct$needpmtct) = as.character(1970:2030)
+          names(pmtct$receivepmtct) = as.character(1970:2030)
           
-          saveRDS(tdx_agg_simul_male,
-                  paste0(
-                    here::here("outputs"),
-                    "/male time to dx final 12 30 2.rda"
-                  ))
-          saveRDS(
-            tdx_agg_simul_female,
-            paste0(
-              here::here("outputs"),
-              "/female time to dx final 12 30 2.rda"
-            )
-          )
-          saveRDS(tdx_agg_simul_both,
-                  paste0(
-                    here::here("outputs"),
-                    "/both time to dx final 12 30 2.rda"
-                  ))
-          gc()
+          pmtct_1 = pmtct
+          
+          # find the number of years which have data, using testing data
+          anc_indx_years <-
+            pmtct$anc_test[!is.na(pmtct$anc_test[2, ])]
+          anc_data_years <-
+            as.integer(names(pmtct$anc_test)[!(is.na(pmtct$anc_test[2, ]) |
+                                                 pmtct$anc_test[2, ] == 0)])
+          anc_data_idx <-
+            fp$ss$PROJ_YEARS - ((fp$ss$PROJ_YEARS + 1970 - 1) - anc_data_years)
+          
+          # Find valid columns where row 2 is not NA
+          valid_cols <-
+            which(!(is.na(pmtct$anc_test[2, ]) |
+                      pmtct$anc_test[2, ] == 0))  # Faster than repeated indexing
+          
+          # anc tested and tested anc pos
+          anc_tested <-
+            as.integer(colSums(pmtct$anc_test[c(2, 5), valid_cols], na.rm = T))
+          anc_pos <- as.integer(pmtct$anc_test[3, valid_cols])
+          
+          # Extract birth indices
+          births_idx <- colnames(pmtct$anc_test)[valid_cols]
+          
+          # Compute ANC coverage,  nb women tested at anc1 / births
+          anc_cov <- anc_tested / pmtct$births[births_idx]
+          
+          # Compute ANC positive proportion
+          anc_pos_prop <- anc_pos / anc_tested
+          
+          anc_tests_prob = as.numeric(pmtct$receivepmtct) / as.numeric(pmtct$needpmtct)
+          anc_tests_prob[is.na(anc_tests_prob)] <- 0
+          names(anc_tests_prob) <-
+            fp$ss$proj_start:(fp$ss$proj_start + fp$ss$PROJ_YEARS - 1)
+          
+          #if (any(anc_tests_prob > 1)) { print("check spectrum's pmtct inputs, prob of being tested at anc >100%") }
+          anc_tests_prob[anc_tests_prob > 1] <-
+            0.999 # or we could put a default of 95% (to discuss)
+          
+          # linear interpolation to remove any missing data
+          if (length(anc_cov) != 0) {
+            # apply known data
+            anc_tests_prob[anc_data_idx] <- anc_cov
+            
+            # predict using artcov method past the date (for projection)
+            anc_tests_prob[max(anc_data_idx):fp$ss$PROJ_YEARS] <-
+              anc_tests_prob[max(anc_data_idx):fp$ss$PROJ_YEARS]
+            
+            
+          }
+          # identify years when ANC should be applied
+          Years_anc = names(which(anc_tests_prob[start_anc] > anc_tests_prob[start_anc:61]))
+          year_start = names(anc_tests_prob[start_anc])
+          #fixes some issues with country files
+          
+          
+          if(length(Years_anc)>0 ){
+            # adjust anctest
+            pmtct_1$anc_test[, Years_anc] = pmtct$anc_test[, which(names(pmtct$anc_test) == year_start)]
+            # if needed adjust recive/need pmtct, all countries should have anctest but just incase one year is missing.
+            pmtct_1$receivepmtct[which(names(pmtct$anc_test) == Years_anc)] = pmtct$receivepmtct[which(names(pmtct$anc_test) == year_start)]
+            pmtct_1$needpmtct[which(names(pmtct$anc_test) == Years_anc)] = pmtct$needpmtct[which(names(pmtct$anc_test) == year_start)]
+          }
         }
         
+        
+        # # time to diagnosis
+        # simul_tdxF = simul_pool_time_dx_agg_prev(
+        #   samp = samp,
+        #   mod = make_country[[cnt]]$mod,
+        #   fp = make_country[[cnt]]$fp,
+        #   hivdemo_proj = hivdemo_proj_list[[cnt]],
+        #   pmtct = pmtct_list[[cnt]],
+        #   year = 2015:2023,
+        #   std = F,
+        #   age = c("15-24", "25-34", "35-49", "50-99"),
+        #   sex = "female",
+        #   parallel = T
+        # )
+        # print(1)
+        # simul_tdxM = simul_pool_time_dx_agg_prev(
+        #   samp = samp,
+        #   mod = make_country[[cnt]]$mod,
+        #   fp = make_country[[cnt]]$fp,
+        #   hivdemo_proj = hivdemo_proj_list[[cnt]],
+        #   pmtct = pmtct_list[[cnt]],
+        #   year = 2015:2023,
+        #   std = F,
+        #   age = c("15-24", "25-34", "35-49", "50-99"),
+        #   sex = "male",
+        #   parallel = T
+        # )
+        # 
+        # print(2)
+        # 
+        # simul_tdxB = simul_pool_time_dx_agg_prev(
+        #   samp = samp,
+        #   mod = make_country[[cnt]]$mod,
+        #   fp = make_country[[cnt]]$fp,
+        #   hivdemo_proj = hivdemo_proj_list[[cnt]],
+        #   pmtct = pmtct_list[[cnt]],
+        #   year = 2015:2023,
+        #   std = F,
+        #   age = c("15-24", "25-34", "35-49", "50-99"),
+        #   sex = c("male", "female"),
+        #   parallel = T
+        # )
+        # print(3)
+        # 
+        # tdx_agg_simul_male[[cnt]]$out_simul_tdx_all = simul_tdxM
+        # tdx_agg_simul_female[[cnt]]$out_simul_tdx_all = simul_tdxF
+        # tdx_agg_simul_both[[cnt]]$out_simul_tdx_all = simul_tdxB
+        # 
+        # make_country[[cnt]]$tdx_male$out_simul_tdx_all = simul_tdxM
+        # make_country[[cnt]]$tdx_female$out_simul_tdx_all = simul_tdxF
+        # make_country[[cnt]]$tdx_both$out_simul_tdx_all = simul_tdxB
+        # 
+        # saveRDS(tdx_agg_simul_male,
+        #         paste0(here::here("outputs"),
+        #                "/male time to dx.rda"))
+        # saveRDS(tdx_agg_simul_female,
+        #         paste0(here::here("outputs"),
+        #                "/female time to dx.rda"))
+        # saveRDS(tdx_agg_simul_both,
+        #         paste0(here::here("outputs"),
+        #                "/both time to dx.rda"))
+        # gc()
+        # 
         # counterfactual time to diagnosis
-        if (is.null(make_country[[cnt]]$tdx_both_counter) &
-            !is.na(counter_years[counter_years$country == cnt, 2])) {
-          
-          simul_tdxF_counter = simul_pool_time_dx_agg_prev_counter(
-            samp,
-            make_country[[cnt]]$mod,
-            make_country[[cnt]]$fp,
+        if (!(is.null(samp_1))) {
+          simul_tdxF_counter = simul_pool_time_dx_agg_prev(
+            samp = samp_1,
+            mod = make_country[[cnt]]$mod,
+            fp = make_country[[cnt]]$fp,
             hivdemo_proj = hivdemo_proj_list[[cnt]],
-            pmtct = pmtct_list[[cnt]],
+            pmtct = pmtct_1,
             year = 2015:2023,
             std = F,
+            age = c("15-24", "25-34", "35-49", "50-99"),
             sex = "female",
-            parallel = T,
-            counter_years = counter_years[counter_years$country == cnt,]
-          )
+            parallel = T)
+          
           print(4)
           
-          simul_tdxM_counter = simul_pool_time_dx_agg_prev_counter(
-            samp,
-            mod,
-            fp,
+          simul_tdxM_counter = simul_pool_time_dx_agg_prev(
+            samp = samp_1,
+            mod = make_country[[cnt]]$mod,
+            fp = make_country[[cnt]]$fp,
             hivdemo_proj = hivdemo_proj_list[[cnt]],
-            pmtct = pmtct_list[[cnt]],
+            pmtct = pmtct_1,
             year = 2015:2023,
             std = F,
+            age = c("15-24", "25-34", "35-49", "50-99"),
             sex = "male",
-            parallel = T,
-            counter_years = counter_years[counter_years$country == cnt,]
-          )
+            parallel = T)
+          
           print(5)
-          simul_tdxB_counter = simul_pool_time_dx_agg_prev_counter(
-            samp = samp,
-            mod = mod,
-            fp = fp,
+          
+          simul_tdxB_counter = simul_pool_time_dx_agg_prev(
+            samp = samp_1,
+            mod = make_country[[cnt]]$mod,
+            fp = make_country[[cnt]]$fp,
             hivdemo_proj = hivdemo_proj_list[[cnt]],
-            pmtct = pmtct_list[[cnt]],
+            pmtct = pmtct_1,
             year = 2015:2023,
             std = F,
+            age = c("15-24", "25-34", "35-49", "50-99"),
             sex = c("male", "female"),
-            parallel = T,
-            counter_years = counter_years[counter_years$country == cnt,]
-          )
+            parallel = T)
+          
           print(6)
           
           tdx_agg_simul_male_counter[[cnt]]$out_simul_tdx_all = simul_tdxM_counter
@@ -193,126 +340,117 @@ for (i in 1:length(make_country)) {
             tdx_agg_simul_male_counter,
             paste0(
               here::here("outputs"),
-              "/male time to dx final counter 12 30 2.rda"
+              "/male time to dx counter.rda"
             )
           )
           saveRDS(
             tdx_agg_simul_female_counter,
             paste0(
               here::here("outputs"),
-              "/female time to dx final counter 12 30 2.rda"
+              "/female time to dx counter.rda"
             )
           )
           saveRDS(
             tdx_agg_simul_both_counter,
             paste0(
               here::here("outputs"),
-              "/both time to dx final counter 12 30 2.rda"
+              "/both time to dx counter.rda"
             )
           )
           gc()
         }
         
-        # counterfactual time to diagnosis
-        if (is.null(make_country[[cnt]]$aware_both)) {
-          
-          simul_m <-
-            simul_aware_agg(
-              samp,
-              mod = make_country[[cnt]]$mod,
-              fp = make_country[[cnt]]$fp,
-              hivdemo_proj = hivdemo_proj_list[[cnt]],
-              pmtct = pmtct_list[[cnt]],
-              year = c(2015:2023),
-              age = c("15-24", "25-34", "35-49", "50-99"),
-              sex = c("male")
-            )
-          print(7)
-          simul_f <-
-            simul_aware_agg(
-              samp,
-              mod = make_country[[cnt]]$mod,
-              fp = make_country[[cnt]]$fp,
-              hivdemo_proj = hivdemo_proj_list[[cnt]],
-              pmtct = pmtct_list[[cnt]],
-              year = c(2015:2023),
-              age = c("15-24", "25-34", "35-49", "50-99"),
-              sex = c("female")
-            )
-          print(8)
-          simul_b <-
-            simul_aware_agg(
-              samp,
-              mod = make_country[[cnt]]$mod,
-              fp = make_country[[cnt]]$fp,
-              hivdemo_proj = hivdemo_proj_list[[cnt]],
-              pmtct = pmtct_list[[cnt]],
-              year = c(2015:2023),
-              age = c("15-24", "25-34", "35-49", "50-99"),
-              sex = c("male", "female")
-            )
-          print(9)
-          
-          aware_agg_simul_male[[cnt]]$out_simul_aware_all = simul_m
-          aware_agg_simul_female[[cnt]]$out_simul_aware_all = simul_f
-          aware_agg_simul_both[[cnt]]$out_simul_aware_all = simul_b
-          
-          make_country[[cnt]]$aware_male$out_simul_aware_all = simul_m
-          make_country[[cnt]]$aware_female$out_simul_aware_all = simul_f
-          make_country[[cnt]]$aware_both$out_simul_aware_all = simul_b
-          
-          saveRDS(aware_agg_simul_male,
-                  paste0(here::here("outputs"),
-                         "/male aware final 12 30 2.rda"))
-          saveRDS(
-            aware_agg_simul_female,
-            paste0(here::here("outputs"),
-                   "/female aware final 12 30 2.rda")
+        simul_m <-
+          simul_aware_agg(
+            samp = samp,
+            mod = make_country[[cnt]]$mod,
+            fp = make_country[[cnt]]$fp,
+            hivdemo_proj = hivdemo_proj_list[[cnt]],
+            pmtct = pmtct_list[[cnt]],
+            year = c(2015:2023),
+            age = c("15-24", "25-34", "35-49", "50-99"),
+            sex = c("male")
           )
-          saveRDS(aware_agg_simul_both,
-                  paste0(here::here("outputs"),
-                         "/both aware final 12 30 2.rda"))
-          gc()
-        }
+        print(7)
+        simul_f <-
+          simul_aware_agg(
+            samp = samp,
+            mod = make_country[[cnt]]$mod,
+            fp = make_country[[cnt]]$fp,
+            hivdemo_proj = hivdemo_proj_list[[cnt]],
+            pmtct = pmtct_list[[cnt]],
+            year = c(2015:2023),
+            age = c("15-24", "25-34", "35-49", "50-99"),
+            sex = c("female")
+          )
+        print(8)
+        simul_b <-
+          simul_aware_agg(
+            samp = samp,
+            mod = make_country[[cnt]]$mod,
+            fp = make_country[[cnt]]$fp,
+            hivdemo_proj = hivdemo_proj_list[[cnt]],
+            pmtct = pmtct_list[[cnt]],
+            year = c(2015:2023),
+            age = c("15-24", "25-34", "35-49", "50-99"),
+            sex = c("male", "female")
+          )
+        print(9)
         
-        # counterfactual time to diagnosis
-        if (is.null(make_country[[cnt]]$aware_both_counter) &
-            !is.na(counter_years[counter_years$country == cnt, 2])) {
-          
+        aware_agg_simul_male[[cnt]]$out_simul_aware_all = simul_m
+        aware_agg_simul_female[[cnt]]$out_simul_aware_all = simul_f
+        aware_agg_simul_both[[cnt]]$out_simul_aware_all = simul_b
+        
+        make_country[[cnt]]$aware_male$out_simul_aware_all = simul_m
+        make_country[[cnt]]$aware_female$out_simul_aware_all = simul_f
+        make_country[[cnt]]$aware_both$out_simul_aware_all = simul_b
+        
+        saveRDS(aware_agg_simul_male,
+                paste0(here::here("outputs"),
+                       "/male aware.rda"))
+        saveRDS(aware_agg_simul_female,
+                paste0(here::here("outputs"),
+                       "/female aware.rda"))
+        saveRDS(aware_agg_simul_both,
+                paste0(here::here("outputs"),
+                       "/both aware.rda"))
+        gc()
+        
+        
+        if (!(is.null(samp_1))) {
           simul_m_counter <-
-            simul_aware_agg_counter(
-              samp,
+            simul_aware_agg(
+              samp = samp_1,
               mod = make_country[[cnt]]$mod,
               fp = make_country[[cnt]]$fp,
               hivdemo_proj = hivdemo_proj_list[[cnt]],
-              pmtct = pmtct_list[[cnt]],
-              counter_years = counter_years[counter_years$country == cnt,],
+              pmtct = pmtct_1,
               year = c(2015:2023),
               age = c("15-24", "25-34", "35-49", "50-99"),
               sex = c("male")
             )
+          
           print(10)
+          
           simul_f_counter <-
-            simul_aware_agg_counter(
-              samp,
+            simul_aware_agg(
+              samp = samp_1,
               mod = make_country[[cnt]]$mod,
               fp = make_country[[cnt]]$fp,
               hivdemo_proj = hivdemo_proj_list[[cnt]],
-              pmtct = pmtct_list[[cnt]],
-              counter_years = counter_years[counter_years$country == cnt,],
+              pmtct = pmtct_1,
               year = c(2015:2023),
               age = c("15-24", "25-34", "35-49", "50-99"),
               sex = c("female")
             )
           print(11)
           simul_b_counter <-
-            simul_aware_agg_counter(
-              samp,
+            simul_aware_agg(
+              samp = samp_1,
               mod = make_country[[cnt]]$mod,
               fp = make_country[[cnt]]$fp,
               hivdemo_proj = hivdemo_proj_list[[cnt]],
-              pmtct = pmtct_list[[cnt]],
-              counter_years = counter_years[counter_years$country == cnt,],
+              pmtct = pmtct_1,
               year = c(2015:2023),
               age = c("15-24", "25-34", "35-49", "50-99"),
               sex = c("male", "female")
@@ -330,34 +468,24 @@ for (i in 1:length(make_country)) {
           saveRDS(
             aware_agg_simul_male_counter,
             paste0(here::here("outputs"),
-                   "/male aware final counter 12 30 2.rda")
+                   "/male aware counter.rda")
           )
           saveRDS(
             aware_agg_simul_female_counter,
-            paste0(here::here("outputs"),
-                   "/female aware final counter 12 30 2.rda")
+            paste0(
+              here::here("outputs"),
+              "/female aware counter.rda"
+            )
           )
           saveRDS(
             aware_agg_simul_both_counter,
             paste0(here::here("outputs"),
-                   "/both aware final counter 12 30 2 .rda")
+                   "/both aware counter.rda")
           )
           gc()
         }
         
-        simul_b_counter = NULL
-        simul_b_counter = NULL
-        simul_b_counter = NULL
-        simul_f = NULL
-        simul_m = NULL
-        simul_b = NULL
-        simul_tdxM_counter = NULL
-        simul_tdxF_counter = NULL
-        simul_tdxB_counter = NULL
         
-        simul_tdxM = NULL
-        simul_tdxF = NULL
-        simul_tdxB = NULL
         
         
         
@@ -375,6 +503,8 @@ for (i in 1:length(make_country)) {
   
 }
 
+
+# to fill in any missing make country sections
 for (i in 1:length(tdx_agg_simul_both)) {
   cnt = names(tdx_agg_simul_both)[i]
   
@@ -400,53 +530,93 @@ for (i in 1:length(tdx_agg_simul_both)) {
   
   
 }
+# to fill in any missing aware agg 
+for (i in 1:length(make_country)) {
+  cnt = names(make_country)[i]
+  
+  
+  tdx_agg_simul_both[[cnt]]   <- make_country[[cnt]]$tdx_both
+  tdx_agg_simul_male[[cnt]]   <- make_country[[cnt]]$tdx_male
+  tdx_agg_simul_female[[cnt]] <- make_country[[cnt]]$tdx_female
+  
+  aware_agg_simul_both[[cnt]]   <- make_country[[cnt]]$aware_both
+  aware_agg_simul_male[[cnt]]   <- make_country[[cnt]]$aware_male
+  aware_agg_simul_female[[cnt]] <- make_country[[cnt]]$aware_female
+  
+  if(!is.na(counter_years[counter_years$country == cnt,]$start)){
+  
+  
+  tdx_agg_simul_both_counter[[cnt]]   <- make_country[[cnt]]$tdx_both_counter
+  tdx_agg_simul_male_counter[[cnt]]   <- make_country[[cnt]]$tdx_male_counter
+  tdx_agg_simul_female_counter[[cnt]] <- make_country[[cnt]]$tdx_female_counter
+  
+  aware_agg_simul_both_counter[[cnt]]   <- make_country[[cnt]]$aware_both_counter
+  aware_agg_simul_male_counter[[cnt]]   <- make_country[[cnt]]$aware_male_counter
+  aware_agg_simul_female_counter[[cnt]] <- make_country[[cnt]]$aware_female_counter
+  
+  
+  }else {
+    tdx_agg_simul_both_counter[[cnt]]   <- NULL
+    tdx_agg_simul_male_counter[[cnt]]   <- NULL
+    tdx_agg_simul_female_counter[[cnt]] <- NULL
+    
+    aware_agg_simul_both_counter[[cnt]]   <- NULL
+    aware_agg_simul_male_counter[[cnt]]   <- NULL
+    aware_agg_simul_female_counter[[cnt]] <- NULL
+    
+  }
+  
+}
+
 
 # final save
 # aware (counter)
 saveRDS(aware_agg_simul_male_counter,
         paste0(here::here("outputs"),
-               "/male aware final counter.rda"))
-saveRDS(aware_agg_simul_female_counter,
-        paste0(here::here("outputs"),
-               "/female aware final counter.rda"))
+               "/male aware counter.rda"))
+saveRDS(
+  aware_agg_simul_female_counter,
+  paste0(here::here("outputs"),
+         "/female aware counter.rda")
+)
 saveRDS(aware_agg_simul_both_counter,
         paste0(here::here("outputs"),
-               "/both aware final counter.rda"))
+               "/both aware counter.rda"))
 # aware (observed)
 saveRDS(aware_agg_simul_male,
         paste0(here::here("outputs"),
-               "/male aware final observed.rda"))
+               "/male aware observed.rda"))
 saveRDS(aware_agg_simul_female,
         paste0(here::here("outputs"),
-               "/female aware final observed.rda"))
+               "/female aware observed.rda"))
 saveRDS(aware_agg_simul_both,
         paste0(here::here("outputs"),
-               "/both aware final observed.rda"))
+               "/both aware observed.rda"))
 
 # tdx (counter)
 saveRDS(tdx_agg_simul_male_counter,
         paste0(here::here("outputs"),
-               "/male tdx final counter.rda"))
+               "/male tdx counter.rda"))
 saveRDS(tdx_agg_simul_female_counter,
         paste0(here::here("outputs"),
-               "/female tdx final counter.rda"))
+               "/female tdx counter.rda"))
 saveRDS(tdx_agg_simul_both_counter,
         paste0(here::here("outputs"),
-               "/both tdx final counter.rda"))
+               "/both tdx counter.rda"))
 
 # tdx (observed)
 saveRDS(tdx_agg_simul_male,
         paste0(here::here("outputs"),
-               "/male tdx final observed.rda"))
+               "/male tdx observed.rda"))
 saveRDS(tdx_agg_simul_female,
         paste0(here::here("outputs"),
-               "/female tdx final observed.rda"))
+               "/female tdx observed.rda"))
 saveRDS(tdx_agg_simul_both,
         paste0(here::here("outputs"),
-               "/both tdx final observed.rda"))
+               "/both tdx observed.rda"))
 
 # make_country save
 saveRDS(
   object = make_country,
-  file = here::here('anc testing/data/make_country_simul_final.rds')
+  file = here::here('anc testing/data/make_country_simul_final5.2.rds')
 )

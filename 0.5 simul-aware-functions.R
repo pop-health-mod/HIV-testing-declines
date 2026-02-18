@@ -1,4 +1,4 @@
-simul_aware_agg_counter <- function(samp, mod, fp,hivdemo_proj,pmtct, counter_years, year = c(2000:2020),
+simul_aware_agg_counter <- function(samp, mod, fp,hivdemo_proj,pmtct, counter_years,counter_anc, year = c(2000:2020),
                                     age = c("15-24", "25-34", "35-49", "50-99"),
                                     sex = c("male", "female")) {
   
@@ -47,28 +47,49 @@ simul_aware_agg_counter <- function(samp, mod, fp,hivdemo_proj,pmtct, counter_ye
   poids <- data.frame(year = year, w = apply(attr(mod, "hivpop")[, index_age, index_sex, index_w, drop = FALSE], 4, FUN = sum) +
                         apply(attr(mod, "artpop")[, , index_age, index_sex, ,index_w, drop = FALSE], 6, FUN = sum))
   
+  # define counterfactual outside loop
+  start_anc = counter_anc$start
+  if (!is.na(start_anc)) {
+    #need to remove minus 1 from end as end captures first year post decline.
+    end_anc = if (!is.na(counter_anc$end)) {
+      counter_anc$end - 1
+    } else{
+      62 - 1
+    }
+    pmtct$anc_test[start_anc:end_anc - 30] = pmtct$anc_test[counter_anc$start -
+                                                              30]
+    pmtct$receivepmtct[start_anc:end_anc] = pmtct$receivepmtct[counter_anc$start]
+    pmtct$needpmtct[start_anc:end_anc] = pmtct$needpmtct[counter_anc$start]
+  }
+  
+  
   # Create parameters (proper scale, etc.), and simulate model
-  fun_samp_par <- function(i, samp, mod, fp,hivdemo_proj,pmtct, poids, age_out_aware_ind, sex_out_aware_ind, year,counter_years) {
+  fun_samp_par <- function(i, samp, mod, fp,hivdemo_proj,pmtct, poids, age_out_aware_ind, sex_out_aware_ind, year,counter_years,counter_anc) {
     source("anc testing/1.0 simmod.R")
-    convert = (length(samp[i,])-3)/2
-    start = as.numeric(counter_years[2])
-    # set as the year of recovery(after 2000)-1(to allow for indexed replacment)  
-    end = as.numeric(ifelse(!is.na(counter_years[3]),(as.numeric(counter_years[3])-30-1),30))
+    source("anc testing/1.1 tot test out.R")
     
-    start_female = start - 30
+    sampi = samp[i,]
     
-    start_dx = convert + (start - 40)
+    if(!is.na(as.numeric(counter_years[2]))){
+        convert = (length(sampi)-3)/2
+        start = as.numeric(counter_years[2])
+        
+        # set as the year of recovery(after 2000)-1(to allow for indexed replacment)  
+        end = as.numeric(ifelse(!is.na(counter_years[3]),(as.numeric(counter_years[3])-30-1),30))
+        
+        start_female = start - 30
+        
+        start_dx = convert + (start - 40)
+        
+        end_dx = start_dx + (end - start_female) 
+        
+        
+        
+        sampi[start_female:min(end,convert)] = sampi[start_female]
+        sampi[start_dx:min(end_dx,convert+convert-10)] = sampi[start_dx]
+    }
     
-    end_dx = start_dx + (end - start_female) 
-    
-    
-    samp = samp[i,]
-    
-    samp[start_female:min(end,convert)] = samp[start_female]
-    samp[start_dx:min(end_dx,convert+convert-10)] = samp[start_dx]
-    
-    
-    fp_local <- create_anc_param(samp, fp, pmtct = pmtct, hivdemo_proj = hivdemo_proj)
+    fp_local <- create_anc_param(sampi, fp, pmtct = pmtct, hivdemo_proj = hivdemo_proj)
     
     mod <- simmod_anc_t(fp_local)
     result_i <- get_out_aware(mod, fp_local, agegr = age_out_aware_ind, sex = sex_out_aware_ind)
@@ -84,7 +105,7 @@ simul_aware_agg_counter <- function(samp, mod, fp,hivdemo_proj,pmtct, counter_ye
   parallel::clusterExport(cl, 
                           varlist = c("samp", "mod", "fp", "poids", "age_out_aware_ind", 
                                       "sex_out_aware_ind", "year", "fun_samp_par",
-                                      "hivdemo_proj","pmtct","counter_years"),
+                                      "hivdemo_proj","pmtct","counter_years","counter_anc"),
                           envir = environment())
   parallel::clusterEvalQ(cl, {
     library(Rcpp)
@@ -98,7 +119,8 @@ simul_aware_agg_counter <- function(samp, mod, fp,hivdemo_proj,pmtct, counter_ye
         age_out_aware_ind = age_out_aware_ind, 
         sex_out_aware_ind = sex_out_aware_ind, 
         year = year,hivdemo_proj = hivdemo_proj,
-        pmtct = pmtct, counter_years
+        pmtct = pmtct, counter_years = counter_years,
+        counter_anc = counter_anc
       )
     }
   )
@@ -120,6 +142,7 @@ simul_aware_agg <- function(samp, mod, fp,hivdemo_proj,pmtct, year = c(2000:2020
                                     sex = c("male", "female")) {
   
   source("anc testing/1.0 simmod.R")
+  source("anc testing/1.1 tot test out.R")
   library(Rcpp)
   n_year <- length(year)
   index_w <- year - fp$ss$proj_start + 1
@@ -168,6 +191,7 @@ simul_aware_agg <- function(samp, mod, fp,hivdemo_proj,pmtct, year = c(2000:2020
   # Create parameters (proper scale, etc.), and simulate model
   fun_samp_par <- function(i, samp, mod, fp,hivdemo_proj,pmtct, poids, age_out_aware_ind, sex_out_aware_ind, year) {
     source("anc testing/1.0 simmod.R")
+    source("anc testing/1.1 tot test out.R")
     fp <- create_anc_param(samp[i, ], fp,pmtct = pmtct,hivdemo_proj = hivdemo_proj)
     
     mod <- simmod_anc_t(fp)

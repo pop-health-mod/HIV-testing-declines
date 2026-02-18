@@ -6,7 +6,7 @@ library(ggh4x)
 library(forcats)
 
 path_anc <- here::here("anc testing")
-make_country = readRDS(paste0(path_anc, "/data/make_country_simul.rds"))
+make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final5.5.rds"))
 
 
 # make survey program and ANC program data/ pmtct data avilibility graphs
@@ -161,9 +161,9 @@ surveydf = data.frame(
   sex = vector(),
   hivstatus = vector()
 )
-
+i=1
 for (i in 1:length(make_country)) {
-  surv = make_country[[i]]$survey_hts[, c("surveyid", "year", "sex", "hivstatus", "counts")]
+  surv = make_country[[i]]$survey_hts[, c("surveyid", "year", "sex", "hivstatus")]
   cnt = names(make_country)[i]
   
   surveydf_temp = surveydf[0,]
@@ -172,11 +172,14 @@ for (i in 1:length(make_country)) {
   }
   
   surv = distinct(surv)
-  for (surveyid_1 in surv$surveyid) {
+  for (surveyid_1 in unique(surv$surveyid)) {
+    
+    print(surveyid_1)
+    
     surv_tmp = subset(surv, surveyid %in% surveyid_1)
     if ("both" %in% surv_tmp$sex) {
       surv_tmp$sex = "both"
-      surv_tmp = distinct(surv_tmp)
+      #surv_tmp = distinct(surv_tmp)
     }
     
     if (length(unique(surv_tmp$sex)) > 2) {
@@ -185,14 +188,12 @@ for (i in 1:length(make_country)) {
     }
     if (length(unique(surv_tmp$sex)) == 2) {
       surv_tmp$sex = "both"
-      surv_tmp = distinct(surv_tmp)
     }
     if (any(c("positive", "serodata") %in% surv_tmp$hivstatus)) {
       surv_tmp$hivstatus = "serodata"
     } else {
       surv_tmp$hivstatus = "no serodata"
     }
-    surv_tmp = distinct(surv_tmp)
     
     surv[surv$surveyid == surveyid_1,] = surv_tmp
   }
@@ -200,10 +201,10 @@ for (i in 1:length(make_country)) {
   surv$country = cnt
   
   surv$surveyid = survey_type(surv$surveyid)
-  
+  # removes counts
   surv = surv[, c(2, 1, 5, 3, 4)]
   names(surv) = names(surveydf)
-  
+  surv = distinct(surv)
   surveydf = rbind(surveydf, surv)
   
   
@@ -423,7 +424,7 @@ combined_plot <- ggplot() +
     shape = 16,
     color = "white",
     size = 1.2
-  ) +
+  )+
   
   scale_color_manual(
     name = "Modality",
@@ -498,7 +499,7 @@ combined_plot <- ggplot() +
     legend.title = element_text(face = "bold")
   )
 path_out <-
-  here::here("outputs/Paper/survey and program graph")
+  here::here("outputs/Paper 2026/survey and program graph")
 
 combined_plot
 
@@ -507,6 +508,12 @@ ggsave(
   file = paste0(path_out, "/paper_survey_data.png"),
   width = 8.5,
   height = 11,
-  dpi = 7,
+  dpi = 700,
   scale = 1
 )
+
+
+svglite::svglite(fn <- file.path(file = paste0(path_out, "/paper_survey_data.svg")),
+                 width = 8.5, height = 11)
+print(combined_plot)
+dev.off()

@@ -1,7 +1,6 @@
 time_to_dx_cr <- function(fp, year = c(2000:2023), age = "15-24", sex = "male", test_ever = "never", dt = 0.20, version = "C") {
   
   if (version == "C") {
-    
     val <- time_to_dx_cr_cpp(fp, year = year, age = age, sex = sex, test_ever = test_ever, dt = dt)
   
     } 
@@ -254,7 +253,12 @@ pool_time_dx_cr <- function(mod, fp, year = c(2000:2020), age = c("15-24", "25-3
       if (time_mat$age[i] == "50-99") { index_agei <- index_age[4, ] }
       if (time_mat$sex[i] == "male") { index_sexi <- 1 }
       if (time_mat$sex[i] == "female") { index_sexi <- 2 }
-      
+      # optimization
+      if (!(time_mat[i,]$age %in% age & time_mat[i,]$sex %in% sex)){
+        next
+      }
+
+
       
       result_i <- time_to_dx_cr(fp, year = year[n], age = as.character(time_mat$age[i]),
                                 sex = as.character(time_mat$sex[i]), 
@@ -281,7 +285,8 @@ pool_time_dx_cr <- function(mod, fp, year = c(2000:2020), age = c("15-24", "25-3
         time_mat$w[i] <- sum(fp$infections[index_agei$x:index_agei$y, index_sexi, ind_yr]) *
           denom$w_ae[denom$agegr == time_mat$age[i] & denom$sex == time_mat$sex[i]]
       } 
-      }
+    
+    }
     time_mat_sel <- time_mat[time_mat$age %in% age & time_mat$sex %in% sex, ]
     val$time_dx_avg[val$year == year[n]] <- weighted.mean(time_mat_sel$time_avg, w = time_mat_sel$w)
     val$time_dx_med[val$year == year[n]] <- weighted.mean(time_mat_sel$time_med, w = time_mat_sel$w)
@@ -353,7 +358,7 @@ simul_time_dx_cr <- function(samp, mod, fp, pmtct, hivdemo_proj, year = c(2018:2
       fp <- create_anc_param(samp[i,], fp, pmtct = pmtct, hivdemo_proj = hivdemo_proj)
       
       if(sex == "male"){
-        result_i <- time_to_dx_cr_cpp(fp, year = year[n], age = age, sex = sex, test_ever = test_ever, dt = dt)
+        result_i <- time_to_dx_cr(fp, year = year[n], age = age, sex = sex, test_ever = test_ever, dt = dt)
         print(paste0("iter",i))
       }
       if(sex == "female"){
@@ -462,153 +467,174 @@ simul_time_dx_cr <- function(samp, mod, fp, pmtct, hivdemo_proj, year = c(2018:2
   return(val)
   
 }
-simul_pool_time_dx_agg_prev_counter <- function(samp, mod, fp, year = c(2000:2018),
-                                                age = c("15-24", "25-34", "35-49", "50-99"),
-                                                sex = c("male", "female"),
-                                                comp_risk = TRUE, std = TRUE,pmtct,hivdemo_proj,counter_years,
-                                                parallel = T) {
-  
-  
-  n_year <- length(year)
-  index_w <- year - fp$ss$proj_start + 1
-  
-  if(all(age %in% c("15-24", "25-34", "35-49", "50-99")) & length(unique(age)) == 4) {
-    index_age <- 1:66 
-    age_out_time_ind <- "15-99" }
-  if(all(age %in% c("15-24"))) {
-    index_age <- 1:10 
-    age_out_time_ind <- "15-24" }
-  if(all(age %in% c("25-34"))) {
-    index_age <- 11:20 
-    age_out_time_ind <- "25-34" }
-  if(all(age %in% c("35-49"))) {
-    index_age <- 21:35 
-    age_out_time_ind <- "35-49" }
-  if(all(age %in% c("50-99"))) {
-    index_age <- 36:66 
-    age_out_time_ind <- "50-99" }      
-  
-  if(all(sex %in% c("male", "female")) & length(unique(sex)) == 2) {
-    index_sex <- 1:2 
-    sex_out_time_ind <- "both" }
-  if(all(sex %in% c("male"))) {
-    index_sex <- 1 
-    sex_out_time_ind <- "male" }
-  if(all(sex %in% c("female"))) {
-    index_sex <- 2 
-    sex_out_time_ind <- "female" }
-  
-  poids <- data.frame(year = year, w = apply(attr(mod, "infections")[index_age, index_sex, index_w, drop = FALSE], 3, FUN = sum))
-  print(counter_years)
-  if(parallel == T){
-  # Create parameters (proper scale, etc.), and simulate model
-  fun_samp_par <- function(i, samp, mod, fp, poids, age_out_time_ind, 
-                           sex_out_time_ind, year, pmtct,hivdemo_proj,counter_years) {
-    #creates
-    sampi = samp[i,]
-    convert = (length(sampi)-4)/2
-    start = as.numeric(counter_years[2])
-    # set as the year of recovery(after 2000)-1(to allow for indexed replacment)  
-    end = as.numeric(ifelse(!is.na(counter_years[3]),(as.numeric(counter_years[3])-30-1),30))
-    
-    start_female = start - 30
-    
-    start_dx = convert + (start - 40)
-    
-    end_dx = start_dx + (end - start_female) 
-    
-    # change later to work for all years
-    sampi[start_female:min(end,convert)] = sampi[start_female]
-    sampi[start_dx:min(end_dx,convert+convert-10)] = sampi[start_dx]
-    #sampi2
-    
-    fp_local <- create_anc_param(sampi, fp, pmtct = pmtct, hivdemo_proj = hivdemo_proj)
-    #fp_local2 <- create_anc_param(sampi2, fp, pmtct = pmtct, hivdemo_proj = hivdemo_proj)
-    
-    
-    mod_local <- simmod_anc_t(fp_local)
-    
-    result_i <- pool_time_dx_cr(mod_local, fp_local, year = year, age = age, sex = sex)
-    result_i$sampi <- i
-    rownames(result_i) <- NULL
-    return(result_i)
-  }
-  num_cores = parallel::detectCores()-5
-  cl <- parallel::makeCluster(num_cores)  # Create a cluster with available cores
-  parallel::clusterExport(cl, 
-                          varlist = c("samp", "mod", "fp", "poids", "age_out_time_ind", 
-                                      "sex_out_time_ind", "year", "fun_samp_par",
-                                      "hivdemo_proj","pmtct","counter_years"),
-                          envir = environment())
-  parallel::clusterEvalQ(cl, {
-    library(Rcpp)
-    source(paste0(here::here("anc testing"),"/1.0 simmod.R"))
-    source(paste0(here::here("anc testing"),"/0.6 time dx functions.R"))
-    source(paste0(here::here("anc testing"),"/src/time_dx_anc_cpp_cr.R"))
-    })
-  val_lst <- parallel::parLapply(
-    cl, 
-    X = 1:nrow(samp), 
-    fun = function(i) {
-      fun_samp_par(
-        i, samp = samp, mod = mod, fp = fp, poids = poids, 
-        age_out_time_ind = age_out_time_ind, 
-        sex_out_time_ind = sex_out_time_ind, 
-        year = year,hivdemo_proj = hivdemo_proj,pmtct = pmtct,
-        counter_years = counter_years
-      )
-    }
-  )
-  parallel::stopCluster(cl)  # Stop the cluster
-  
-  }else{
-    # Create parameters (proper scale, etc.), and simulate model
-    source(paste0(here::here("anc testing"),"/1.0 simmod.R"))
-    source(paste0(here::here("anc testing"),"/0.6 time dx functions.R"))
-    
-    fun_samp_par <- function(i, samp, mod, fp, poids, age_out_time_ind, sex_out_time_ind, year, pmtct, hivdemo_proj, counter_years) {
-      # source("f90 cpp.R")
-      
-      fp_local <- create_anc_param(samp[i,], fp, pmtct = pmtct, hivdemo_proj = hivdemo_proj)
-      
-      fp_local$hts_rate[,,,idx] <- fp_local$hts_rate[,,,start]
-      
-      fp_local$subvar$diagn_rate_oi[,,,4,] <- 0
-      
-      fp_local$diagn_rate[,,,,idx] <- (fp_local$diagn_rate[,,,,start] - fp_local$subvar$diagn_rate_oi[,,,,start])
-      fp_local$diagn_rate[,,,,idx] <- (fp_local$diagn_rate[,,,,idx] + fp_local$subvar$diagn_rate_oi[,,,,idx])
-      
-      mod <- simmod_anc_t(fp_local)
-      
-      result_i <- pool_time_dx_cr(mod, fp_i, year = year, age = age, sex = sex)
-      result_i$sampi <- i
-      rownames(result_i) <- NULL
-      result_i
-    }
-    
-    # Run the function sequentially for each row in samp
-    val_lst <- lapply(1:nrow(samp), function(i) {
-      fun_samp_par(
-        i, samp = samp, mod = mod, fp = fp, poids = poids, 
-        age_out_time_ind = age_out_time_ind, 
-        sex_out_time_ind = sex_out_time_ind, 
-        year = year, hivdemo_proj = hivdemo_proj, 
-        pmtct = pmtct, counter_years = counter_years
-      )
-    })
-    
-  }
-  
-  
-  
-  val_ <- data.table::rbindlist(val_lst)
-  val <- merge(val_, poids, by = "year")
-  val$age <-paste(age, collapse = "+")
-  val$sex <- paste(sex, collapse = "+")
-  
-  return(val)
-  
-}
+# simul_pool_time_dx_agg_prev_counter <- function(samp, mod, fp, year = c(2000:2018),
+#                                                 age = c("15-24", "25-34", "35-49", "50-99"),
+#                                                 sex = c("male", "female"),
+#                                                 comp_risk = TRUE, std = TRUE,pmtct,hivdemo_proj,
+#                                                 counter_years,counter_anc,
+#                                                 parallel = T) {
+#   
+#   
+#   n_year <- length(year)
+#   index_w <- year - fp$ss$proj_start + 1
+#   
+#   if(all(age %in% c("15-24", "25-34", "35-49", "50-99")) & length(unique(age)) == 4) {
+#     index_age <- 1:66 
+#     age_out_time_ind <- "15-99" }
+#   if(all(age %in% c("15-24"))) {
+#     index_age <- 1:10 
+#     age_out_time_ind <- "15-24" }
+#   if(all(age %in% c("25-34"))) {
+#     index_age <- 11:20 
+#     age_out_time_ind <- "25-34" }
+#   if(all(age %in% c("35-49"))) {
+#     index_age <- 21:35 
+#     age_out_time_ind <- "35-49" }
+#   if(all(age %in% c("50-99"))) {
+#     index_age <- 36:66 
+#     age_out_time_ind <- "50-99" }      
+#   
+#   if(all(sex %in% c("male", "female")) & length(unique(sex)) == 2) {
+#     index_sex <- 1:2 
+#     sex_out_time_ind <- "both" }
+#   if(all(sex %in% c("male"))) {
+#     index_sex <- 1 
+#     sex_out_time_ind <- "male" }
+#   if(all(sex %in% c("female"))) {
+#     index_sex <- 2 
+#     sex_out_time_ind <- "female" }
+#   
+#   poids <- data.frame(year = year, w = apply(attr(mod, "infections")[index_age, index_sex, index_w, drop = FALSE], 3, FUN = sum))
+#   
+#   # define counterfactual outside loop
+#   start_anc = counter_anc$start
+#   if (!is.na(start_anc)) {
+#     #need to remove minus 1 from end as end captures first year post decline.
+#     end_anc = if (!is.na(counter_anc$end)) {
+#       counter_anc$end - 1
+#     } else{
+#       62 - 1
+#     }
+#     pmtct$anc_test[start_anc:end_anc - 30] = pmtct$anc_test[counter_anc$start - 30]
+#     pmtct$receivepmtct[start_anc:end_anc] = pmtct$receivepmtct[counter_anc$start]
+#     pmtct$needpmtct[start_anc:end_anc] = pmtct$needpmtct[counter_anc$start]
+#   } else{
+#     print("No ANC")
+#   }
+#   
+#   if(parallel == T){
+#   # Create parameters (proper scale, etc.), and simulate model
+#   fun_samp_par <- function(i, samp, mod, fp, poids, age_out_time_ind, 
+#                            sex_out_time_ind, year, pmtct,hivdemo_proj,
+#                            counter_years,counter_anc) {
+#     #creates
+#     sampi = samp[i,]
+#     
+#     if(!is.na(as.numeric(counter_years[2]))){
+#       convert = (length(sampi) - 4) / 2
+#       start = as.numeric(counter_years[2])
+#       # set as the year of recovery(after 2000)-1(to allow for indexed replacment)
+#       end = as.numeric(ifelse(!is.na(counter_years[3]), (as.numeric(counter_years[3]) - 30 - 1), 30))
+#       
+#       start_female = start - 30
+#       
+#       start_dx = convert + (start - 40)
+#       
+#       end_dx = start_dx + (end - start_female)
+#       
+#       # change later to work for all years
+#       sampi[start_female:min(end, convert)] = sampi[start_female]
+#       sampi[start_dx:min(end_dx, convert + convert - 10)] = sampi[start_dx]
+#     }
+#     
+#     fp_local <- create_anc_param(sampi, fp, pmtct = pmtct, hivdemo_proj = hivdemo_proj)
+#     
+#     mod_local <- simmod_anc_t(fp_local)
+#     
+#     result_i <- pool_time_dx_cr(mod_local, fp_local, year = year, age = age, sex = sex)
+#     result_i$sampi <- i
+#     rownames(result_i) <- NULL
+#     return(result_i)
+#   }
+#   num_cores = parallel::detectCores()-5
+#   cl <- parallel::makeCluster(num_cores)  # Create a cluster with available cores
+#   parallel::clusterExport(cl, 
+#                           varlist = c("samp", "mod", "fp", "poids", "age_out_time_ind", 
+#                                       "sex_out_time_ind", "year", "fun_samp_par",
+#                                       "hivdemo_proj","pmtct","counter_years","counter_anc"),
+#                           envir = environment())
+#   parallel::clusterEvalQ(cl, {
+#     library(Rcpp)
+#     source(paste0(here::here("anc testing"),"/1.0 simmod.R"))
+#     source(paste0(here::here("anc testing"),"/0.6 time dx functions.R"))
+#     source(paste0(here::here("anc testing"),"/src/time_dx_anc_cpp_cr.R"))
+#     })
+#   val_lst <- parallel::parLapply(
+#     cl, 
+#     X = 1:nrow(samp), 
+#     fun = function(i) {
+#       fun_samp_par(
+#         i, samp = samp, mod = mod, fp = fp, poids = poids, 
+#         age_out_time_ind = age_out_time_ind, 
+#         sex_out_time_ind = sex_out_time_ind, 
+#         year = year,hivdemo_proj = hivdemo_proj,pmtct = pmtct,
+#         counter_years = counter_years, counter_anc = counter_anc
+#       )
+#     }
+#   )
+#   parallel::stopCluster(cl)  # Stop the cluster
+#   
+#   }else{
+#     # Create parameters (proper scale, etc.), and simulate model
+#     source(paste0(here::here("anc testing"),"/1.0 simmod.R"))
+#     source(paste0(here::here("anc testing"),"/0.6 time dx functions.R"))
+#     print("stop you non parrallel code is no longer correct")
+#     # Incorrect
+#     # fun_samp_par <- function(i, samp, mod, fp, poids, age_out_time_ind, sex_out_time_ind, year, pmtct, hivdemo_proj, counter_years) {
+#     #   # source("f90 cpp.R")
+#     #   
+#     #   fp_local <- create_anc_param(samp[i,], fp, pmtct = pmtct, hivdemo_proj = hivdemo_proj)
+#     #   
+#     #   fp_local$hts_rate[,,,idx] <- fp_local$hts_rate[,,,start]
+#     #   
+#     #   fp_local$subvar$diagn_rate_oi[,,,4,] <- 0
+#     #   
+#     #   fp_local$diagn_rate[,,,,idx] <- (fp_local$diagn_rate[,,,,start] - fp_local$subvar$diagn_rate_oi[,,,,start])
+#     #   fp_local$diagn_rate[,,,,idx] <- (fp_local$diagn_rate[,,,,idx] + fp_local$subvar$diagn_rate_oi[,,,,idx])
+#     #   
+#     #   mod <- simmod_anc_t(fp_local)
+#     #   
+#     #   result_i <- pool_time_dx_cr(mod, fp_i, year = year, age = age, sex = sex)
+#     #   result_i$sampi <- i
+#     #   rownames(result_i) <- NULL
+#     #   result_i
+#     # }
+#     # 
+#     # # Run the function sequentially for each row in samp
+#     # val_lst <- lapply(1:nrow(samp), function(i) {
+#     #   fun_samp_par(
+#     #     i, samp = samp, mod = mod, fp = fp, poids = poids, 
+#     #     age_out_time_ind = age_out_time_ind, 
+#     #     sex_out_time_ind = sex_out_time_ind, 
+#     #     year = year, hivdemo_proj = hivdemo_proj, 
+#     #     pmtct = pmtct, counter_years = counter_years
+#     #   )
+#     #})
+#     
+#   }
+#   
+#   
+#   
+#   val_ <- data.table::rbindlist(val_lst)
+#   val <- merge(val_, poids, by = "year")
+#   val$age <-paste(age, collapse = "+")
+#   val$sex <- paste(sex, collapse = "+")
+#   
+#   return(val)
+#   
+# }
+# 
+
 simul_pool_time_dx_agg_prev <- function(samp, mod, fp, year = c(2000:2018),
                                         age = c("15-24", "25-34", "35-49", "50-99"),
                                         sex = c("male", "female"),
@@ -650,7 +676,7 @@ simul_pool_time_dx_agg_prev <- function(samp, mod, fp, year = c(2000:2018),
   
   if(parallel == T){
     # Create parameters (proper scale, etc.), and simulate model
-    fun_samp_par <- function(i, samp, mod, fp, poids, age_out_time_ind, sex_out_time_ind, year, pmtct,hivdemo_proj) {
+    fun_samp_par <- function(i, samp, mod, fp, poids, age, sex, year, pmtct,hivdemo_proj) {
       source(paste0(here::here("anc testing"),"/1.0 simmod.R"))
       source(paste0(here::here("anc testing"),"/0.6 time dx functions.R"))
       
@@ -665,8 +691,8 @@ simul_pool_time_dx_agg_prev <- function(samp, mod, fp, year = c(2000:2018),
     num_cores = parallel::detectCores()-5
     cl <- parallel::makeCluster(num_cores)  # Create a cluster with available cores
     parallel::clusterExport(cl, 
-                            varlist = c("samp", "mod", "fp", "poids", "age_out_time_ind", 
-                                        "sex_out_time_ind", "year", "fun_samp_par","hivdemo_proj","pmtct"),
+                            varlist = c("samp", "mod", "fp", "poids", "age", 
+                                        "sex", "year", "fun_samp_par","hivdemo_proj","pmtct"),
                             envir = environment())
     parallel::clusterEvalQ(cl, {
       library(Rcpp)
@@ -680,8 +706,7 @@ simul_pool_time_dx_agg_prev <- function(samp, mod, fp, year = c(2000:2018),
       fun = function(i) {
         fun_samp_par(
           i, samp = samp, mod = mod, fp = fp, poids = poids, 
-          age_out_time_ind = age_out_time_ind, 
-          sex_out_time_ind = sex_out_time_ind, 
+          age = age, sex = sex, 
           year = year,hivdemo_proj = hivdemo_proj,pmtct = pmtct
         )
       }

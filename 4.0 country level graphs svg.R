@@ -1,0 +1,583 @@
+hivdemo_proj_list <- readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
+
+pmtct_list <- readRDS(paste0(path_anc, "/data/pmtct_list_cnt.rds"))
+
+source(paste0(path_anc, "/1.0 simmod.R"))
+source(paste0(path_anc, "/1.1 tot test out.R"))
+source(paste0(path_anc, "/0.6 time dx functions.R"))
+source(paste0(path_anc, "/0.5 simul-aware-functions.R"))
+library(Rcpp)
+library(Matrix)
+library(first90)
+library(tidyverse)
+library(patchwork)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(data.table)
+
+
+img_dir <- here::here("outputs", "country_png")
+dir.create(img_dir, recursive = TRUE, showWarnings = FALSE)
+
+# safe filename
+slug <- function(x){
+  x <- tolower(x)
+  x <- gsub("[^a-z0-9]+", "-", x)
+  x <- gsub("(^-|-$)", "", x)
+  x
+}
+
+namelist = names(make_country)#[c(1,2,6,11,17,20,23,27)]
+
+make_country$Niger$tdx_male_counter = NULL
+
+make_country$Niger$survey_hts[(make_country$Niger$survey_hts$year == 2006 & 
+                                 make_country$Niger$survey_hts$sex == "male"&
+                                 make_country$Niger$survey_hts$agegr == "15-24"&
+                                 make_country$Niger$survey_hts$hivstatus == "positive"),7:10] = c(0.00500000, 0.20916501, 0.000000000, 0.4099559)
+
+make_country$Niger$survey_hts[(make_country$Niger$survey_hts$year == 2006 & 
+                                 make_country$Niger$survey_hts$sex == "female"&
+                                 make_country$Niger$survey_hts$agegr == "35-49"&
+                                 make_country$Niger$survey_hts$hivstatus == "positive"),7:10] = c(0.00500000, 0.07268548, 0.000000000, 0.14246091)
+
+
+make_country$Niger$survey_hts[(make_country$Niger$survey_hts$year == 2012 & 
+                                 make_country$Niger$survey_hts$sex == "male"&
+                                 make_country$Niger$survey_hts$agegr == "25-34"&
+                                 make_country$Niger$survey_hts$hivstatus == "positive"),7:10] = c(0.00500000, 0.17320508, 0.000000000, 0.3394757)
+
+
+for(cnt in sort(namelist)){
+  if(is.null(make_country[[cnt]]$aware_both)){ 
+    next
+  }
+  # panel alignment 
+  panel_align_theme <- theme(
+    plot.title.position = "panel",
+    plot.margin = margin(6, 0, 6, 0),
+    axis.title.y = element_text(margin = margin(r = 3),size = 14,vjust = 0),
+    plot.title = element_text(size = 12,hjust = 0,face = "bold")
+  )
+  
+  # Render a section title
+  id <- tolower(cnt)
+  id <- gsub("[^a-z0-9]+", "-", id)
+  id <- gsub("(^-|-$)", "", id)
+  
+  cat(sprintf("\n\n## %s {#%s}\n\n", cnt, id))
+    
+    
+    ## ttd----
+    malettd = Agg_simul_pool_time_dx_prev(out_simul_tdx_all = make_country[[cnt]]$tdx_male$out_simul_tdx_all,year = 2015:2023,sex = "male")
+    femalettd = Agg_simul_pool_time_dx_prev(out_simul_tdx_all = make_country[[cnt]]$tdx_female$out_simul_tdx_all,year = 2015:2023,sex = "female")
+    
+    start_year = 2015
+    end_year = 2023
+    col = "firebrick3"
+    col2 = "steelblue"
+    
+    
+    
+    if(is.null(make_country[[cnt]]$tdx_male_counter)){
+      
+      maxttm = max(max(c(malettd$time_dx_uci),max(c(femalettd$time_dx_uci))))
+      
+      
+      plotttm = ggplot() +
+        geom_ribbon(data = malettd,
+                    aes(x = year, ymin = time_dx_lci, ymax = time_dx_uci,group = 1),
+                    fill = col2,
+                    alpha = 0.3) +
+        geom_line(data = malettd,aes(y = time_dx, x = year), color = col2,linewidth = 1)+
+        theme_minimal() +
+        labs(title = paste0("Median Time to Diagnosis or AIDS Death\namong Men in ",cnt," between ",start_year," and ",end_year), 
+             x = "Year", 
+             y = "Median Years to Diagnosis or AIDS Death")+
+        scale_x_continuous(breaks = c(seq(start_year, end_year, 1),2023),
+                           limits = c(start_year, 2023))+
+        scale_y_continuous(limits = c(0,maxttm))+
+        theme(
+          axis.title.x = element_text(size = 12),
+          axis.text.x = element_text(size = 10),
+          axis.text.y = element_text(size = 10),
+        )
+      
+      
+      plotttf = ggplot() +
+        geom_ribbon(data = femalettd,
+                    aes(x = year, ymin = time_dx_lci, ymax = time_dx_uci,group = 1),
+                    fill = col,
+                    alpha = 0.2)+
+        geom_line(data = femalettd,aes(y = time_dx, x = year), color = col,linewidth = 1)+
+        theme_minimal() +
+        labs(title = paste0("Median Time to Diagnosis or AIDS Death\namong Women in ",cnt," between ",start_year," and ",end_year), 
+             x = "Year", 
+             y = "Median Years to Diagnosis or AIDS Death")+
+        scale_x_continuous(breaks = c(seq(start_year, end_year, 1),2023),
+                           limits = c(start_year, 2023))+
+        scale_y_continuous(limits = c(0,maxttm))+
+        theme(
+          axis.title.x = element_text(size = 12),
+          axis.text.x = element_text(size = 10),
+          axis.text.y = element_text(size = 10),
+        )
+      
+      
+    } else if(!is.null(make_country[[cnt]]$tdx_male_counter)){
+      
+      malettd_counter = Agg_simul_pool_time_dx_prev(out_simul_tdx_all = make_country[[cnt]]$tdx_male_counter$out_simul_tdx_all,year = 2015:2023,sex = "male")
+      femalettd_counter = Agg_simul_pool_time_dx_prev(out_simul_tdx_all = make_country[[cnt]]$tdx_female_counter$out_simul_tdx_all,year = 2015:2023,sex = "female")
+      
+      maxttm = max(max(c(malettd$time_dx_uci,malettd_counter$time_dx_uci),max(c(femalettd$time_dx_uci,femalettd_counter$time_dx_uci))))
+                       
+      
+      plotttf = ggplot() +
+        #female
+        geom_ribbon(data = femalettd,
+                    aes(x = year, ymin = time_dx_lci, ymax = time_dx_uci,group = 1),
+                    fill = col,
+                    alpha = 0.3)+
+        geom_line(data = femalettd,aes(y = time_dx, x = year), color = col,linewidth = 1)+
+        #female counter
+        geom_ribbon(data = femalettd_counter,
+                    aes(x = year, ymin = time_dx_lci, ymax = time_dx_uci,group = 1),
+                    fill = col,
+                    alpha = 0.2)+
+        geom_line(data = femalettd_counter,aes(y = time_dx, x = year), color = col,linewidth = 1,linetype = 2)+
+        theme_minimal() +
+        labs(title = paste0("Observed and Counterfactual Median Time to Diagnosis or AIDS Death\namong Women in ",cnt," between ",start_year," and ",end_year), 
+             x = "Year", 
+             y = "Median Years to Diagnosis or AIDS Death")+
+        scale_x_continuous(breaks = c(seq(start_year, end_year, 1),2023),
+                           limits = c(start_year, 2023))+
+        scale_y_continuous(limits = c(0,maxttm))+
+        # #Add legend for Line 1
+        annotate("segment", x = 2016.1,xend = 2016.4,y = maxttm*0.1,yend = maxttm*0.1 ,color = "firebrick3", linewidth = 1,linetype = 2)+
+        annotate("segment", x = 2016.6,xend = 2017,y = maxttm*0.1,yend = maxttm*0.1 ,color = "firebrick3", linewidth = 1)+
+        annotate("text", x = 2015.3, y = maxttm*0.1, label = "Female", color = "firebrick3", hjust = 0, vjust = 0.4)+
+        annotate("text", x = 2016.24, y = maxttm*0.32, label = "Observed", color = "black", hjust = 0, vjust = 0.5,angle = 315)+
+        annotate("text", x = 2015.27, y = maxttm*0.40, label = "Counterfactual", color = "black", hjust = 0, vjust = 0.5,angle = 315)+
+        theme(
+          axis.title.x = element_text(size = 12),
+          axis.text.x = element_text(size = 10),
+          axis.text.y = element_text(size = 10),
+        )
+      
+      
+      plotttm = ggplot() +
+        #male 
+        geom_ribbon(data = malettd,
+                    aes(x = year, ymin = time_dx_lci, ymax = time_dx_uci,group = 1),
+                    fill = col2,
+                    alpha = 0.4) +
+        geom_line(data = malettd,aes(y = time_dx, x = year), color = col2,linewidth = 1)+
+        #male counter
+        geom_ribbon(data = malettd_counter,
+                    aes(x = year, ymin = time_dx_lci, ymax = time_dx_uci,group = 1),
+                    fill = col2,
+                    alpha = 0.3) +
+        geom_line(data = malettd_counter,aes(y = time_dx, x = year), color = col2,linewidth = 1,linetype = 2)+
+        theme_minimal() +
+        labs(title = paste0("Observed and Counterfactual Median Time to Diagnosis or AIDS Death\namong Men in ",cnt," between ",start_year," and ",end_year), 
+             x = "Year", 
+             y = "Median Years to Diagnosis or AIDS Death")+
+        scale_x_continuous(breaks = c(seq(start_year, end_year, 1),2023),
+                           limits = c(start_year, 2023))+
+        scale_y_continuous(limits = c(0,maxttm))+
+        # #Add legend for Line 1
+        annotate("segment", x = 2016.1,xend = 2016.4,y = maxttm*0.1,yend = maxttm*0.1 ,color = "steelblue", linewidth = 1,linetype = 2)+
+        annotate("segment", x = 2016.6,xend = 2017,y = maxttm*0.1,yend = maxttm*0.1 ,color = "steelblue", linewidth = 1)+
+        annotate("text", x = 2015.3, y = maxttm*0.1, label = "Male", color = "steelblue", hjust = 0, vjust = 0.4)+
+        annotate("text", x = 2016.24, y = maxttm*0.32, label = "Observed", color = "black", hjust = 0, vjust = 0.5,angle = 315)+
+        annotate("text", x = 2015.27, y = maxttm*0.40, label = "Counterfactual", color = "black", hjust = 0, vjust = 0.5,angle = 315)+
+        theme(
+          axis.title.x = element_text(size = 12),
+          axis.text.x = element_text(size = 10),
+          axis.text.y = element_text(size = 10),
+        )
+      
+      
+    }
+    
+    
+    
+    
+    ## aware----
+    sex1 = "Female"
+    sex2 = "Male"
+    
+    var = paste0("aggpooled",sex1)
+    varc = paste0("aggpooled",sex1,"C")
+    var2 = paste0("aggpooled",sex2)
+    varc2 = paste0("aggpooled",sex2,"C")
+    
+    
+    if(sex1 == "Female"){
+      col = "firebrick3"
+      col2 = "steelblue"
+    }else{
+      col = "steelblue"
+      col2 = "firebrick3"
+      
+    }
+    
+    aggpooledMale = Agg_simul_aware(make_country[[cnt]]$aware_male,age = c("15-99"),year = 2015:2023,sex = "male")
+    aggpooledFemale = Agg_simul_aware(make_country[[cnt]]$aware_female,age = c("15-99"),year = 2015:2023,sex = "female")
+    
+    
+    
+    start_year = 2015
+    end_year = 2023
+    
+    if(is.null(make_country[[cnt]]$aware_male_counter)){
+      
+      maxaware = max(c(aggpooledFemale$uci,aggpooledMale$uci))
+      
+      awareplotfemale = ggplot() +
+        geom_ribbon(data = get(var), 
+                    aes(x = year, ymin = lci, ymax = uci,group = 1), 
+                    fill = col, 
+                    alpha = ifelse(sex1 == "female",0.2,0.3)) +
+        
+        geom_line(data = get(var),aes(y = propaware, x = year), color = col,linewidth = 1)+
+        
+        geom_hline(yintercept = 0.95,linetype = 3)+
+        theme_minimal() +
+        labs(title = paste0("Proportion WLHIV Aware of Their Status in ",cnt,": ",start_year,"-",end_year), 
+             x = "Year", 
+             y = "Proportion WLHIV aware ")+
+        scale_x_continuous(breaks = seq(start_year, end_year, 1),
+                           limits = c(start_year, 2023))+
+        scale_y_continuous(limits = c(0,1),breaks = c(seq(0.00, 0.95, 0.20),0.95))+
+        theme(
+          axis.title.x = element_text(size = 12),
+          axis.text.x = element_text(size = 10),
+          axis.text.y = element_text(size = 10),
+        )
+      awareplotfemale
+    } else if(!is.null(make_country[[cnt]]$aware_male_counter)){
+      
+      
+      aggpooledFemaleC = Agg_simul_aware(make_country[[cnt]]$aware_female_counter,age = c("15-99"),year = 2015:2023,sex = "female")
+      
+      
+      awareplotfemale = ggplot() +
+        # women
+        geom_ribbon(data = get(var), 
+                    aes(x = year, ymin = lci, ymax = uci,group = 1), 
+                    fill = col, 
+                    alpha = ifelse(sex1 == "female",0.2,0.3)) +
+        
+        geom_line(data = get(var),aes(y = propaware, x = year), color = col,linewidth = 1)+
+        #women counter
+        geom_ribbon(data = get(varc),
+                    aes(x = year, ymin = lci, ymax = uci,group = 1),
+                    fill = col2,
+                    alpha = ifelse(sex1 == "female",0.2,0.3)) +
+        geom_line(data = get(varc),aes(y = propaware, x = year), color = col,linewidth = 1,linetype = 2)+
+        geom_hline(yintercept = 0.95,linetype = 3)+
+        theme_minimal() +
+        labs(title = paste0("Proportion WLHIV Aware of Their Status in ",cnt,": ",start_year,"-",end_year), 
+             x = "Year", 
+             y = "Proportion WLHIV aware ")+
+        scale_x_continuous(breaks = seq(start_year, end_year, 1),
+                           limits = c(start_year, 2023))+
+        scale_y_continuous(limits = c(0,1),breaks = c(seq(0.00, 0.95, 0.20),0.95))+
+        annotate("segment", x = 2020.3,xend = 2020.8,y = 0.1,yend = 0.1 ,color = col, linewidth = 1)+
+        annotate("segment", x = 2020.3,xend = 2020.8,y = 0.17,yend = 0.17 ,color = col, linewidth = 1,linetype = "dashed")+
+        annotate("text", x = 2020.9, y = 0.1, label = "Observed", color = "black", hjust = 0, vjust = 0.5)+
+        annotate("text", x = 2020.9, y = 0.17, label = "Counterfactual", color = "black", hjust = 0, vjust = 0.5)+
+        theme(
+          axis.title.x = element_text(size = 12),
+          axis.text.x = element_text(size = 10),
+          axis.text.y = element_text(size = 10),
+        )
+      awareplotfemale
+      
+    }
+    
+    if(is.null(make_country[[cnt]]$aware_male_counter)){
+      
+      
+      awareplotmale = ggplot() +
+        geom_ribbon(data = get(var2), 
+                    aes(x = year, ymin = lci, ymax = uci,group = 1), 
+                    fill = col2, 
+                    alpha = ifelse(sex2 == "female",0.2,0.3)) +
+        
+        geom_line(data = get(var2),aes(y = propaware, x = year), color = col2,linewidth = 1)+
+        
+        geom_hline(yintercept = 0.95,linetype = 3)+
+        theme_minimal() +
+        labs(title = paste0("Proportion MLHIV Aware of Their Status in ",cnt,": ",start_year,"-",end_year), 
+             x = "Year", 
+             y = "Proportion MLHIV aware ")+
+        scale_x_continuous(breaks = seq(start_year, end_year, 1),
+                           limits = c(start_year, 2023))+
+        scale_y_continuous(limits = c(0,1),breaks = c(seq(0.00, 0.95, 0.20),0.95))+
+        theme(
+          axis.title.x = element_text(size = 12),
+          axis.text.x = element_text(size = 10),
+          axis.text.y = element_text(size = 10),
+        )
+      awareplotmale
+    } else if(!is.null(make_country[[cnt]]$aware_male_counter)){
+      
+      
+      aggpooledMaleC = Agg_simul_aware(make_country[[cnt]]$aware_male_counter,age = c("15-99"),year = 2015:2023,sex = "male")
+      
+      
+      awareplotmale = ggplot() +
+        # women
+        geom_ribbon(data = get(var2), 
+                    aes(x = year, ymin = lci, ymax = uci,group = 1), 
+                    fill = col2, 
+                    alpha = ifelse(sex2 == "female",0.2,0.4)) +
+        
+        geom_line(data = get(var2),aes(y = propaware, x = year), color = col2,linewidth = 1)+
+        #women counter
+        geom_ribbon(data = get(varc2),
+                    aes(x = year, ymin = lci, ymax = uci,group = 1),
+                    fill = col2,
+                    alpha = ifelse(sex2 == "female",0.2,0.3)) +
+        geom_line(data = get(varc2),aes(y = propaware, x = year), color = col2,linewidth = 1,linetype = 2)+
+        geom_hline(yintercept = 0.95,linetype = 3)+
+        theme_minimal() +
+        labs(title = paste0("Proportion MLHIV Aware of Their Status in ",cnt,": ",start_year,"-",end_year), 
+             x = "Year", 
+             y = "Proportion MLHIV aware ")+
+        scale_x_continuous(breaks = seq(start_year, end_year, 1),
+                           limits = c(start_year, 2023))+
+        scale_y_continuous(limits = c(0,1),breaks = c(seq(0.00, 0.95, 0.20),0.95))+
+        annotate("segment", x = 2020.3,xend = 2020.8,y = 0.1,yend = 0.1 ,color = "steelblue", linewidth = 1)+
+        annotate("segment", x = 2020.3,xend = 2020.8,y = 0.17,yend = 0.17 ,color = "steelblue", linewidth = 1,linetype = "dashed")+
+        annotate("text", x = 2020.9, y = 0.1, label = "Observed", color = "black", hjust = 0, vjust = 0.5)+
+        annotate("text", x = 2020.9, y = 0.17, label = "Counterfactual", color = "black", hjust = 0, vjust = 0.5)+
+        theme(
+          axis.title.x = element_text(size = 12),
+          axis.text.x = element_text(size = 10),
+          axis.text.y = element_text(size = 10),
+        )
+      awareplotmale
+      
+    }
+    
+    
+    
+    
+    
+    ## survey fits tot----
+    
+    panel_survey_theme <- theme(
+      plot.title.position = "panel",
+      plot.title = element_text(hjust = 0.5,size = 12),
+      plot.margin = margin(0, 0, 0, 0),
+      axis.title.y = element_text(#margin = margin(r = 3),
+        size = 12),
+      
+    )
+    
+    hivstatus = "all"
+    
+    # female all
+    a = graph_evertest(make_country[[cnt]], cnt = cnt, dat_org = make_country[[cnt]]$survey_hts,
+                       sex = "female",  hivstatus = hivstatus, 
+                       age = "15-24", year_start = 2000, year_end = 2023,
+                       TitleT = F,axisx = F,axisx_text = F)   
+    # female all
+    b = graph_evertest(make_country[[cnt]], cnt = cnt, dat_org = make_country[[cnt]]$survey_hts,
+                       sex = "female",  hivstatus = hivstatus, 
+                       age = "25-34", year_start = 2000, year_end = 2023,
+                       TitleT = F,axisy = F,axisx = F,axisx_text = F,axisy_text = F)   
+    # female all
+    c = graph_evertest(make_country[[cnt]], cnt = cnt, dat_org = make_country[[cnt]]$survey_hts,
+                       sex = "female",  hivstatus = hivstatus, 
+                       age = "35-49", year_start = 2000, year_end = 2023,TitleT = F,
+                       axisy = F,axisx = F,axisx_text = F,axisy_text = F)   
+    
+    
+    # male all
+    am = graph_evertest(make_country[[cnt]], cnt = cnt, dat_org = make_country[[cnt]]$survey_hts,
+                        sex = "male",  hivstatus = hivstatus, 
+                        age = "15-24", year_start = 2000, year_end = 2023,TitleT = F,axis_angle = 315)   
+    # male all
+    bm = graph_evertest(make_country[[cnt]], cnt = cnt, dat_org = make_country[[cnt]]$survey_hts,
+                        sex = "male",  hivstatus = hivstatus, 
+                        age = "25-34", year_start = 2000, year_end = 2023,
+                        TitleT = F,axisy = F,axisy_text = F,axis_angle = 315)   
+    # male all
+    cm = graph_evertest(make_country[[cnt]], cnt = cnt, dat_org = make_country[[cnt]]$survey_hts,
+                        sex = "male",  hivstatus = hivstatus, 
+                        age = "35-49", year_start = 2000, year_end = 2023,
+                        TitleT = F,axisy = F,axisy_text = F,axis_angle = 315)   
+    
+    
+    a  <- a  + ggtitle("age: 15–24") + labs(y = "Female\nProportion Evertested") + panel_survey_theme
+    b  <- b  + ggtitle("age: 25–34") + labs(y = NULL)     + panel_survey_theme
+    c  <- c  + ggtitle("age: 35–49") + labs(y = NULL)     + panel_survey_theme
+    
+    am <- am + labs(y = "Male\nProportion Evertested")  + panel_survey_theme
+    bm <- bm + labs(y = NULL)    + panel_survey_theme
+    cm <- cm + labs(y = NULL)    + panel_survey_theme
+    
+    survey_panels <- (a + b + c) / (am + bm + cm)  +
+      plot_layout(heights = c(1,1))
+    
+    
+    survey_title = ggplot() +
+      theme_void() +
+      labs(title = paste0("Proportion Evertested 2000 to 2023\nby age: ", cnt)) +
+      theme(
+        plot.title = element_text(hjust = 0, size = 12,face = "bold"),
+        plot.margin = margin(0, 0, 0, 0)  # small gap below the title
+      )
+    
+    survey_plot  <- survey_title / survey_panels + plot_layout(heights = c(0.01, 1))
+    
+    ## survey fits totpos----
+    
+    # female hiv+
+    a1 = graph_evertest(make_country[[cnt]], cnt = cnt, dat_org = make_country[[cnt]]$survey_hts,
+                        sex = "female", hivstatus = "positive", 
+                        age = "15-24", year_start = 2000, year_end = 2023,
+                        TitleT = F,axisx = F,axisx_text = F)
+    # female hiv+
+    b1 = graph_evertest(make_country[[cnt]], cnt = cnt, dat_org = make_country[[cnt]]$survey_hts,
+                        sex = "female", hivstatus = "positive", 
+                        age = "25-34", year_start = 2000, year_end = 2023,
+                        TitleT = F, axisy = F,axisx = F,axisx_text = F,axisy_text = F)   
+    
+    # female hiv+
+    c1 = graph_evertest(make_country[[cnt]], cnt = cnt, dat_org = make_country[[cnt]]$survey_hts,
+                        sex = "female", hivstatus = "positive", 
+                        age = "35-49", year_start = 2000, year_end = 2023,TitleT = F,
+                        axisy = F,axisx = F,axisx_text = F,axisy_text = F)   
+    
+    
+    # male hiv+
+    a1m = graph_evertest(make_country[[cnt]], cnt = cnt, dat_org = make_country[[cnt]]$survey_hts,
+                         sex = "male", hivstatus = "positive", 
+                         age = "15-24", year_start = 2000, year_end = 2023,TitleT = F,axis_angle = 315)
+    # male hiv+
+    b1m = graph_evertest(make_country[[cnt]], cnt = cnt, dat_org = make_country[[cnt]]$survey_hts,
+                         sex = "male", hivstatus = "positive", 
+                         age = "25-34", year_start = 2000, year_end = 2023,
+                         TitleT = F,axisy = F,axisy_text = F,axis_angle = 315)   
+    
+    # male hiv+
+    c1m = graph_evertest(make_country[[cnt]], cnt = cnt, dat_org = make_country[[cnt]]$survey_hts,
+                         sex = "male", hivstatus = "positive", 
+                         age = "35-49", year_start = 2000, year_end = 2023,
+                         TitleT = F,axisy = F,axisy_text = F,axis_angle = 315)   
+    
+    
+    
+    a1  <- a1  + ggtitle("age: 15–24") + labs(y = "Female\nProportion Evertested") + panel_survey_theme
+    b1  <- b1  + ggtitle("age: 25–34") + labs(y = NULL)     + panel_survey_theme
+    c1  <- c1  + ggtitle("age: 35–49") + labs(y = NULL)     + panel_survey_theme
+    
+    a1m <- a1m + labs(y = "Male\nProportion Evertested") + panel_survey_theme
+    b1m <- b1m + labs(y = NULL)   + panel_survey_theme
+    c1m <- c1m + labs(y = NULL)   + panel_survey_theme
+    
+    survey_panels_pos <- (a1 + b1 + c1) / (a1m + b1m + c1m) + 
+      plot_layout(heights = c(1, 1))
+    
+    survey_title_pos = ggplot() +
+      theme_void() +
+      labs(title = paste0("Proportion Positive Evertested 2000 to 2023\nby age: ", cnt)) +
+      theme(
+        plot.title = element_text(hjust = 0, size = 12,face = "bold"),
+        plot.margin = margin(0, 0, 0, 0)  # small gap below the title
+      )
+    survey_plot_pos  <- survey_title_pos / survey_panels_pos + plot_layout(heights = c(0.01, 1))
+    
+    
+    #survey_plot_pos
+    
+    ## test fits----
+    
+    
+    vct = graph_tot_tests(make_country[[cnt]], cnt = cnt, sex = "both",  hivstatus = "all", 
+                          test_type = "vcttests", year_start = 2000, year_end = 2023)
+    vct_pos = graph_tot_tests(make_country[[cnt]], cnt = cnt, sex = "both", hivstatus = "positive",
+                              test_type = "vcttests", year_start = 2000, year_end = 2023)
+    
+    
+    
+    # anc tests
+    anc = graph_tot_tests(make_country[[cnt]], cnt = cnt, sex = "both",  hivstatus = "all",
+                          test_type = "anctests", year_start = 2000, year_end = 2023)
+    anc_pos = graph_tot_tests(make_country[[cnt]], cnt = cnt, sex = "both", hivstatus = "positive", 
+                              test_type = "anctests", year_start = 2000, year_end = 2023)
+    
+    
+    ## graphing-----
+    #' graphs
+    #' vct
+    #' vctpos
+    #' anc
+    #' ancpos
+    #' ttd
+    #' awareplotfemale
+    #' awareplotmale
+    #' survey_plot
+    #' survey_plot_pos
+    
+  #ENSURE alignment
+  vct            <- vct            + panel_align_theme
+  vct_pos        <- vct_pos        + panel_align_theme
+  anc            <- anc            + panel_align_theme
+  anc_pos        <- anc_pos        + panel_align_theme
+  plotttm        <- plotttm        + panel_align_theme
+  plotttf        <- plotttf        + panel_align_theme
+  awareplotmale  <- awareplotmale  + panel_align_theme
+  awareplotfemale<- awareplotfemale+ panel_align_theme
+  
+  
+  design <- "
+  AB
+  CD
+  EF
+  GH
+  IJ
+  "
+  
+  final_plot <- wrap_plots(
+    A = vct,            B = vct_pos,
+    C = anc,            D = anc_pos,
+    E = survey_plot,    F = survey_plot_pos,
+    G = plotttm,        H = plotttf,
+    I = awareplotmale,  J = awareplotfemale,
+    design = design
+  ) + plot_layout(
+    heights = c(0.8, 0.8, 1, 0.8, 0.8),  # row heights now apply to BOTH columns
+    widths  = c(1, 1)
+  )
+  print(final_plot)
+  
+  
+  # fn <- file.path(img_dir, paste0(slug(cnt), ".png"))
+  # 
+  # ggsave(
+  #   filename = fn,
+  #   plot     = final_plot,
+  #   width    = 14,
+  #   height   = 20,
+  #   units    = "in",
+  #   dpi      = 1000,
+  #   bg       = "white"
+  # )
+  # install.packages("svglite")
+  svglite::svglite(fn <- file.path(img_dir, paste0(slug(cnt), ".svg")),
+                   width = 14, height = 20)
+  print(final_plot)
+  dev.off()
+  
+}
+
+
+
+
