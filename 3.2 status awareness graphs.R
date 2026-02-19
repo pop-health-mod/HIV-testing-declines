@@ -2,11 +2,13 @@ library(data.table)
 library(ggplot2)
 source("anc testing/0.5 simul-aware-functions.R")
 source("anc testing/1.0 simmod.R")
+path_out <- here::here("outputs/paper 2026/TDX")
+counter_years <-  read_rds("anc testing/data/counter_years.rds")
 
 
 # set output directory
 path_out <- here::here("outputs/Paper 2026/awareness")
-#make_country = readRDS("anc testing/data/make_country_simul_final5.rds")
+#make_country = readRDS("anc testing/data/make_country_simul_final.rds")
 
 
 # ----prep for graphs----

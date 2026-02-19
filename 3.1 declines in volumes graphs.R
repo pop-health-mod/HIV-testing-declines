@@ -6,10 +6,10 @@ library(rnaturalearthdata)
 library(sf)
 library(ggnewscale)
 
-path_out <- here::here("outputs/Paper/volume decline/")
+path_out <- here::here("outputs/Paper 2026/volume decline/")
 
 path_anc <- here::here("anc testing")
-#make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final4.rds"))
+make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final.rds"))
 
 source(paste0(path_anc, "/1.1 tot test out.R"))
 

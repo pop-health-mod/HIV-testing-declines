@@ -4,6 +4,9 @@ library(Rcpp)
 source("anc testing/1.0 simmod.R")
 source("anc testing/1.1 tot test out.R")
 
+counter_year <- read_rds("anc testing/data/counter_years.rds")
+counter_anc_years <- read_rds("anc testing/data/counter_anc_years.rds")
+
 path_anc <- here::here("anc testing")
 
 # extract the PMTCT information from the Spectrum files
@@ -14,11 +17,9 @@ hivdemo_proj_list <- readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
 
 
 # adjust for specific country runs
-#cntlist = (counter_years$country[!is.na(counter_years$start)])
 #remove chad for later run
+cntlist = names(make_country)[c(-6)]
 
-cntlist = names(make_country)[c(18,36)]
-cnt = "Kenya"
 for (country in make_country) {
   
   cnt = country$cnt
@@ -220,8 +221,7 @@ for (country in make_country) {
   
 }
 
-saveRDS(object = make_country, file = here::here('anc testing/data/make_country_simul_final5.5.rds'))
-counter_years
+saveRDS(object = make_country, file = here::here('anc testing/data/make_country_simul_final.rds'))
 
 
 

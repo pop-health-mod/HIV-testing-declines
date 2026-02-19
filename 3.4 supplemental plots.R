@@ -7,86 +7,80 @@ library(Rcpp)
 source("anc testing/1.0 simmod.R")
 source("anc testing/1.1 tot test out.R")
 
-names(vcttestvalue)
-vcttestvaluepos
-
-total_tests_mat <-
-  vcttestvalue %>% filter(year %in% 2015:2023)  %>% select(c("year", any_of(responses_vec)))
-positive_tests_mat <-
-  vcttestvaluepos %>% filter(year %in% 2015:2023) %>% select(c("year", any_of(responses_vec)))
-CI_cor = matrix(nrow = 39, ncol = 4)
-CI_cor = as.data.frame(CI_cor)
-colnames(CI_cor) = c("country", "median", "lci", "uci")
-CI_cor[, 1] = names(make_country)
-
-
-for (j in 1:dim(simul_vec_vct)[3]) {
-  #need to do this for now( later fix simul creation)
-  CI_cor[j, 2:4] <- sapply(1:3000, function(i) {
-    cor(
-      simul_vec_vct[16:24, i, j, drop = FALSE] - simul_vec_anc[16:24, i, j, drop =
-                                                                 FALSE],
-      simul_vec_vct_pos[16:24, i, j, drop = FALSE] - simul_vec_anc_pos[16:24, i, j, drop =
-                                                                         FALSE],
-      use = "pairwise.complete.obs",
-      method = "pearson"
-    )
-  }) %>% quantile(c(0.5, 0.025, 0.975), na.rm = T)
-  
-}
-
-
-
-CI_cor = CI_cor %>% arrange(country)
-CI_cor$country = factor(CI_cor$country, levels = sort(unique(CI_cor$country), decreasing = T))
-# 5. Plot
-correlationplot = ggplot(CI_cor, aes(y = country)) +
-  geom_errorbarh(aes(xmin = lci, xmax = uci),
-                 size = 0.4,
-                 colour = "red") +
-  geom_point(aes(x = median)) +
-  
-  theme_minimal() +
-  scale_x_continuous(name = "Pearson's correlation") +
-  labs(title = "Pearson's Correlation: Total vs Positive HIV Tests") +
-  theme(
-    plot.title = element_text(size = 12, face = "bold", hjust = 1.3),
-    axis.title.x = element_text(size = 12),
-    axis.title.y = element_text(size = 0),
-    axis.text.x = element_text(size = 12, hjust = 0.5)
-  ) +
-  
-  geom_vline(xintercept = 0, linetype = 3)
-
-
-correlationplot
-path_out <- here::here("outputs/paper figures")
-
-ggsave(
-  plot = correlationplot,
-  file = paste0(path_out, "/correlationplot.png"),
-  width = 6,
-  height = 7,
-  dpi = 700
-)
+# depricated, interest is program data not already assumption driven simulation data
+# CI_cor = matrix(nrow = 37, ncol = 4)
+# CI_cor = as.data.frame(CI_cor)
+# colnames(CI_cor) = c("country", "median", "lci", "uci")
+# CI_cor[, 1] = names(make_country)
+# 
+# 
+# for (j in 1:dim(simul_vec_vct)[3]) {
+#   #need to do this for now( later fix simul creation)
+#   CI_cor[j, 2:4] <- sapply(1:3000, function(i) {
+#     cor(
+#       simul_vec_vct[16:24, i, j, drop = FALSE] - simul_vec_anc[16:24, i, j, drop =
+#                                                                  FALSE],
+#       simul_vec_vct_pos[16:24, i, j, drop = FALSE] - simul_vec_anc_pos[16:24, i, j, drop =
+#                                                                          FALSE],
+#       use = "pairwise.complete.obs",
+#       method = "pearson"
+#     )
+#   }) %>% quantile(c(0.5, 0.025, 0.975), na.rm = T)
+#   
+# }
+# 
+# 
+# 
+# CI_cor = CI_cor %>% arrange(country)
+# CI_cor$country = factor(CI_cor$country, levels = sort(unique(CI_cor$country), decreasing = T))
+# # 5. Plot
+# correlationplot = ggplot(CI_cor, aes(y = country)) +
+#   geom_errorbarh(aes(xmin = lci, xmax = uci),
+#                  size = 0.4,
+#                  colour = "red") +
+#   geom_point(aes(x = median)) +
+#   
+#   theme_minimal() +
+#   scale_x_continuous(name = "Pearson's correlation") +
+#   labs(title = "Pearson's Correlation: Total vs Positive HIV Tests") +
+#   theme(
+#     plot.title = element_text(size = 12, face = "bold", hjust = 1.3),
+#     axis.title.x = element_text(size = 12),
+#     axis.title.y = element_text(size = 0),
+#     axis.text.x = element_text(size = 12, hjust = 0.5)
+#   ) +
+#   
+#   geom_vline(xintercept = 0, linetype = 3)
+# 
+# 
+# correlationplot
+# path_out <- here::here("outputs/2026 ttd/")
+# 
+# ggsave(
+#   plot = correlationplot,
+#   file = paste0(path_out, "/correlationplot.png"),
+#   width = 6,
+#   height = 7,
+#   dpi = 700
+# )
 
 
-CI_cor_HTS = data.frame(country = NA, median = NA)
-CI_cor_HTS[1:39, 1] = names(make_country)
+CI_cor_vct = data.frame(country = NA, median = NA)
+CI_cor_vct[1:37, 1] = names(make_country)
 
 for (i in 1:length(make_country)) {
   #need to do this for now( later fix simul creation)
-  CI_cor_HTS[i, 2] <-
-    cor(make_country[[i]]$prgm_dat[make_country[[i]]$prgm_dat$year %in% c(2015:2023), c(7, 8)])[1, 2]
+  CI_cor_vct[i, 2] <-
+    cor(make_country[[i]]$prgm_dat[make_country[[i]]$prgm_dat$year %in% c(2015:2023), c(7, 8)],use = "complete.obs")[1, 2]
 }
-CI_cor_HTS[CI_cor_HTS$country %in% "Democratic Republic of the Congo", 1] = "DRC"
-CI_cor_HTS[CI_cor_HTS$country == "United Republic of Tanzania", 1] = "Tanzania"
+CI_cor_vct[CI_cor_vct$country %in% "Democratic Republic of the Congo", 1] = "DRC"
+CI_cor_vct[CI_cor_vct$country == "United Republic of Tanzania", 1] = "Tanzania"
 
-CI_cor_HTS = CI_cor_HTS %>% arrange(country)
-CI_cor_HTS$country = factor(CI_cor_HTS$country, levels = sort(unique(CI_cor_HTS$country), decreasing = T))
+CI_cor_vct = CI_cor_vct %>% arrange(country)
+CI_cor_vct$country = factor(CI_cor_vct$country, levels = sort(unique(CI_cor_vct$country), decreasing = T))
 
 
-correlationplot = ggplot(CI_cor_HTS, aes(y = country)) +
+correlationplot = ggplot(CI_cor_vct, aes(y = country)) +
   #geom_errorbarh(aes(xmin = lci,xmax = uci),size = 0.4,colour = "red")+
   geom_point(aes(x = median)) +
   
@@ -96,7 +90,7 @@ correlationplot = ggplot(CI_cor_HTS, aes(y = country)) +
     limits = c(-1, 1),
     labels = c(-1, -0.5, 0, 0.5, 1)
   ) +
-  labs(title = "Pearson's Correlation: Total vs Positive HIV Tests\npairwise by year, HTS data") +
+  labs(title = "Pearson's Correlation: Total vs Positive HIV Tests\npairwise by year, Non-ANC") +
   theme(
     plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
     axis.title.x = element_text(size = 12),
@@ -108,25 +102,76 @@ correlationplot = ggplot(CI_cor_HTS, aes(y = country)) +
 
 
 correlationplot
-path_out <- here::here("outputs/paper figures")
+path_out <- here::here("outputs/Paper 2026/supplemental")
 
 ggsave(
   plot = correlationplot,
-  file = paste0(path_out, "/correlationplot_HTS.png"),
+  file = paste0(path_out, "/correlationplot_vct.png"),
   width = 6,
   height = 7,
   dpi = 700
 )
 
+# anc
+CI_cor_anc = data.frame(country = NA, median = NA)
+CI_cor_anc[1:37, 1] = names(make_country)
+i=1
+for (i in 1:length(make_country)) {
+  
+  CI_cor_anc[i, 2] <-
+    cor(make_country[[i]]$prgm_dat[make_country[[i]]$prgm_dat$year %in% c(2015:2023), c(9, 10)],use = "complete.obs")[1, 2]
+}
+CI_cor_anc[CI_cor_anc$country %in% "Democratic Republic of the Congo", 1] = "DRC"
+CI_cor_anc[CI_cor_anc$country == "United Republic of Tanzania", 1] = "Tanzania"
+
+CI_cor_anc = CI_cor_anc %>% arrange(country)
+CI_cor_anc$country = factor(CI_cor_anc$country, levels = sort(unique(CI_cor_anc$country), decreasing = T))
+
+
+correlationplot = ggplot(CI_cor_anc, aes(y = country)) +
+  #geom_errorbarh(aes(xmin = lci,xmax = uci),size = 0.4,colour = "red")+
+  geom_point(aes(x = median)) +
+  
+  theme_minimal() +
+  scale_x_continuous(
+    name = "Pearson's correlation",
+    limits = c(-1, 1),
+    labels = c(-1, -0.5, 0, 0.5, 1)
+  ) +
+  labs(title = "Pearson's Correlation: Total vs Positive HIV Tests\npairwise by year, ANC") +
+  theme(
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 0),
+    axis.text.x = element_text(size = 12, hjust = 0.5)
+  ) +
+  
+  geom_vline(xintercept = 0, linetype = 3)
+
+
+correlationplot
+path_out <- here::here("outputs/Paper 2026/supplemental")
+
+ggsave(
+  plot = correlationplot,
+  file = paste0(path_out, "/correlationplot_anc.png"),
+  width = 6,
+  height = 7,
+  dpi = 700
+)
+
+
+
 #---- propprtion plots----
+
 path_anc <- here::here("anc testing")
-hivdemo_proj_list <-
-  readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
+path_out_data <- "outputs"
+hivdemo_proj_list <- readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
+
 pmtct_list <- readRDS(paste0(path_anc, "/data/pmtct_list_cnt.rds"))
 
-simul_vec_anc_prop = readRDS(paste0(path_anc, "/simul prop anc diagnoses.rds"))
-anc_prop = readRDS(paste0(path_anc, "/prop anc diagnoses.rds"))
-rerun_init = T
+# long simulation, set rerun_init to T if this is the first time with a new simulation
+rerun_init = F
 if (rerun_init) {
   anc_prop = data.frame(year = 2005:2030, value = NA)
   simul_vec_anc_prop = array(0, dim = c(31, 3000, 39))
@@ -170,11 +215,13 @@ if (rerun_init) {
     simul_vec_anc_prop[, , l] = as.matrix(simul_prop)
     
   }
-  saveRDS(object = prop_anc, paste0(path_anc, "/prop anc diagnoses.rds"))
+  saveRDS(object = prop_anc, paste0(path_out_data, "/prop anc diagnoses.rds"))
   
-  saveRDS(object = simul_vec_anc_prop, paste0(path_anc, "/simul prop anc diagnoses.rds"))
+  saveRDS(object = simul_vec_anc_prop, paste0(path_out_data, "/simul prop anc diagnoses.rds"))
 }
-names(prop_anc$Angola)
+
+simul_vec_anc_prop = readRDS(paste0(path_out_data, "/simul prop anc diagnoses.rds"))
+prop_anc = readRDS(paste0(path_out_data, "/prop anc diagnoses.rds"))
 
 prop_anc_df <- dplyr::bind_rows(prop_anc, .id = "country")
 
@@ -336,8 +383,6 @@ weighted_ANC_prop_CrI <- weighted_ANC_prop[, .(
 
 setorder(weighted_ANC_prop_CrI, year)
 
-
-1 - weighted_ANC_prop_CrI
 
 anc_pooled_prop = ggplot(weighted_ANC_prop_CrI) +
   geom_ribbon(

@@ -1,13 +1,16 @@
 source(paste0(here::here("anc testing"), "/0.6 time dx functions.R"))
 source(paste0(here::here("anc testing"), "/0.5 simul-aware-functions.R"))
 
+counter_year <- read_rds("anc testing/data/counter_years.rds")
+counter_anc_years <- read_rds("anc testing/data/counter_anc_years.rds")
+
 library(Matrix)
 library(first90)
 library(tidyverse)
 library(Rcpp)
 
 path_anc <- here::here("anc testing")
-make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final5.2.rds"))
+make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final.rds"))
 
 # extract the PMTCT information from the Spectrum files
 pmtct_list <- readRDS(paste0(path_anc, "/data/pmtct_list_cnt.rds"))
@@ -35,8 +38,8 @@ aware_agg_simul_female_counter = list()
 aware_agg_simul_both_counter = list()
 
 # select countries to use, for chad it must be run with new parameters (see 2.0 simulating Shiny90)
-cntlist = names(make_country)[c(18,36)]
-cnt = "Malawi"
+cntlist = names(make_country)[c(-6)]
+
 for (i in 1:length(make_country)) {
   cnt = names(make_country)[i]
   print(cnt)
@@ -530,6 +533,7 @@ for (i in 1:length(tdx_agg_simul_both)) {
   
   
 }
+
 # to fill in any missing aware agg 
 for (i in 1:length(make_country)) {
   cnt = names(make_country)[i]
@@ -567,7 +571,6 @@ for (i in 1:length(make_country)) {
   }
   
 }
-
 
 # final save
 # aware (counter)
@@ -618,5 +621,5 @@ saveRDS(tdx_agg_simul_both,
 # make_country save
 saveRDS(
   object = make_country,
-  file = here::here('anc testing/data/make_country_simul_final5.2.rds')
+  file = here::here('anc testing/data/make_country_simul_final.rds')
 )

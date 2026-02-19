@@ -1,6 +1,8 @@
 source("anc testing/0.6 time dx functions.R")
 source("anc testing/1.1 tot test out.R")
+source("anc testing/1.0 simmod.R")
 path_out <- here::here("outputs/paper 2026/TDX")
+counter_years <-  read_rds("anc testing/data/counter_years.rds")
 
 library(scales)  # Needed for formatting
 library(first90)
@@ -160,7 +162,6 @@ for (i in 1:length(tdx_agg_simul_male_diff)) {
   }
   
 }
-0.67378401  * 12
 
 male_agg_diff = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_male_diff, sex = "male")
 female_agg_diff = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_female_diff, sex = "female")
@@ -202,6 +203,9 @@ both_agg_counter = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_both_counter, sex
 both_no_decline_agg = Agg_simul_pool_time_dx_prev_2(simul_tdxB, sex = "male+female")
 
 male_agg$time_dx - female_agg$time_dx
+
+male_agg = Agg_simul_pool_time_dx_prev(tdx_agg_simul_female_subset$`South Africa`$out_simul_tdx_all, sex = "female")
+
 
 # ----plot male_female ttd----
 start_year = 2015

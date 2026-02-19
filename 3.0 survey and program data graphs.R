@@ -6,7 +6,7 @@ library(ggh4x)
 library(forcats)
 
 path_anc <- here::here("anc testing")
-make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final5.5.rds"))
+make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final.rds"))
 
 
 # make survey program and ANC program data/ pmtct data avilibility graphs
@@ -502,7 +502,7 @@ path_out <-
   here::here("outputs/Paper 2026/survey and program graph")
 
 combined_plot
-
+stop()
 ggsave(
   plot = combined_plot,
   file = paste0(path_out, "/paper_survey_data.png"),
