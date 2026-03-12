@@ -281,9 +281,8 @@ make_country$`Guinea-Bissau`$prgm_dat$vct[make_country$`Guinea-Bissau`$prgm_dat$
 # Kenya
 # Ethiopia
 
-names(make_country$Angola$survey_hts)
-
-load(paste0(here::here("surveys/survey_hts_master(1).rda")))
+# loads a master survey file with extracted survey documents
+load(paste0(here::here("surveys/survey_hts_master.rda")))
 surveys_africa = subset(survey_hts_master, country %in% c(names(make_country),
                                                           "Cabo Verde",
                                                           "Central African Republic",

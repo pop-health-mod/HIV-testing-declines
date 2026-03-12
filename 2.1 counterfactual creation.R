@@ -309,8 +309,7 @@ saveRDS(
   file = here::here('anc testing/data/counter_anc_years.rds')
 )
 
-
-# identify combined declines
+# ---- identify combined declines ----
 x = unique(c(human_counter_years_ANC$country[!is.na(human_counter_years_ANC$start)],human_counter_years$country[!is.na(human_counter_years$start)]))
 
 #find countries only in ANC that are not in vct
