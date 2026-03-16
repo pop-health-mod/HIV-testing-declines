@@ -1,7 +1,31 @@
----
-  output: github_document
----
-  
+----
+ReadMe for the publication: The Impact of Declining HIV Testing in Africa on Time to HIV Diagnosis and Awareness of HIV Status: A Modeling Study of Population-Based Surveys and HIV Testing Program Data (2015-2023) "
+
+The goal of shiny90 is to provide annual estimates of the proportion of PLHIV that are aware of their status, by combining estimates of PLHIV from EPP/Spectrum, annual programmatic data on the number of HIV tests performed (and yield), and nationally-representative survey of HIV testing behaviors. 
+
+This is an update to Shiny90 to include ANC estimates for the publication and the counterfactual to estimate the impacts of reductions in testing
+----
+this script was tested and is only intended to work on windows, the package used to parallel computations is not functional on mac.
+
+This script was tested on:
+computer 1:
+OS: Windows 11
+CPU: i9-13900H, 2600 Mhz, 14 Core(s), 20 Logical Processor(s)
+Ram: 16 GB 4800 mhz
+Drive: 1tb SSD
+Graphics: Intel Iris(R) Xe Graphic 8 GB
+
+Both were tested on:
+R version 4.5.2
+RStudio-2026.01.1-403
+rtools 4.5
+
+
+
+----
+goal: download and install required packages, load source files
+runtime: ~187 seconds (with no packages installed)
+----
 ```{r setup, include = FALSE}
 
 packages <- c(
@@ -25,28 +49,21 @@ if(!"first90" %in% installed.packages()[, "Package"]){
 library(first90)
 
 # source functions
-source(here::here("anc testing/0.1 extracting pjnz functions.R"))
-source(here::here("anc testing/0.4 functions.R"))
-source(here::here("anc testing/0.5 simul-aware-functions.R"))
-source(here::here("anc testing/0.6 time dx functions.R"))
-source(here::here("anc testing/0.7 graphing functions.R"))
+source(here::here("0.1 extracting pjnz functions.R"))
+source(here::here("0.4 functions.R"))
+source(here::here("0.5 simul-aware-functions.R"))
+source(here::here("0.6 time dx functions.R"))
 
+source(here::here("1.0 simmod.R"))
+source(here::here("1.1 tot test out.R"))
 
-source(here::here("anc testing/1.0 simmod.R"))
-source(here::here("anc testing/1.1 tot test out.R"))
-
+# create data directory:
+if (!dir.exists("data")) {
+  dir.create("data", recursive = TRUE)
+}
 
 ```
 
-
-UNAIDS put forward the ambitious 90-90-90 target to end the AIDS epidemic by 2030. This target aims for 90% of people living with HIV (PLHIV) to be aware of their HIV-positive status, 90% of those diagnosed to receive antiretroviral therapy, and 90% of those on treatment to have a suppressed viral load by 2020 (each reaching 95% by 2030).
-HIV testing remains an important bottleneck in this cascade, however, and obtaining reliable epidemiological data on the proportion of PLHIV aware of their status is difficult.
-Such information is nevertheless crucial to effectively monitor HIV prevention efforts. Tracking progress towards achievement of this “first 90” target could be improved by combining population-based surveys and programmatic data on the number of HIV tests performed (and yield) in a coherent deterministic/statistical model. 
-This type of integrative systems modelling is especially useful to fully consider HIV incidence, mortality, testing behaviours, as well as to coherently combine different sources of data. 
-
-The goal of shiny90 is to provide annual estimates of the proportion of PLHIV that are aware of their status, by combining estimates of PLHIV from EPP/Spectrum, annual programmatic data on the number of HIV tests performed (and yield), and nationally-representative survey of HIV testing behaviors. 
-
-This is an update to Shiny90 to include ANC estimates for the publication " The Impact of Declining HIV Testing in Africa on Time to HIV Diagnosis and Awareness of HIV Status: A Modeling Study of Population-Based Surveys and HIV Testing Program Data (2015-2023) "
 
 ## Installation
 
@@ -103,8 +120,7 @@ first90::plot_pjnz_inc(pjnz_summary)
 
 
 # if you have a set of PJNZ files, "0.3 creating make country" will automaticall extract these
-
-# here a synthetic data point and program point are created as an exampl
+# this section will prepare files for running
 age_group <- c('15-24','25-34','35-49')
 
 dat <- first90::select_hts(make_country$Malawi$survey_hts, cnt, age_group)
@@ -125,26 +141,18 @@ first90::plot_input_ancpos(prgm_dat, fp)
 
 ```{r, fig.height = 10, fig.width = 8.5, warning = FALSE}
 
-# here the running of the simulation commences (examine 2.0 simulating Shiny90.R)
-
-# define path
-path_anc <- here::here("anc testing")
-
-source(paste0(path_anc,"/1.0 simmod.R"))
-source(paste0(path_anc,"/1.1 tot test out.R"))
+# here the running of the simulation commences (examine 2.0 simulating Shiny90.R for more info)
 
 # you can now load the presimul file from 0.3 
-path_name = "/data/make_country_presimul.rds"
-make_country = readRDS(paste0(path_anc,path_name))
+path_name = "data/make_country_presimul.rds"
+make_country = readRDS(paste0(path_name))
 
 # load the files created in 0.2
 # extract the PMTCT information from the Spectrum files
-pmtct_list <- readRDS(paste0(path_anc, "/data/pmtct_list_cnt.rds"))
+pmtct_list <- readRDS(paste0("data/pmtct_list_cnt.rds"))
 
 # extract the HIV/demographic projections
-hivdemo_proj_list <- readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
-
-
+hivdemo_proj_list <- readRDS(paste0("data/hivdemo_proj_dt_cnt.rds"))
 
 # select which country you want to run - in this case Malawi
 country = make_country$Malawi
@@ -303,19 +311,63 @@ make_country[[cnt]]$samp <- samp
 
 ```
 
-The model fits by age and sex.
-a more dealited example is provided in appendix-paper-creation which will provide model fits to age,sex and HIV status ( and to program data by ANC and non-ANC)
-```{r, fig.height = 5, fig.width = 8.5, warning=FALSE}
+----
+goal: visualize model fits to survey data by age and sex and to program data by anc and non-anc
+estimate: ~ 10 seconds 
+comments: some error may be present due to stochastic runs of nelder-mead, if too different rerun prior 2 steps
+outputs: graphs of model fit, should match graphs in data_visualizations folder
+----
+```{r visualization 1, fig.height = 10, fig.width = 8.5, warning = FALSE}
+
+# total vct tests
+graph_tot_tests(
+  make_country[[cnt]],
+  cnt = cnt,
+  sex = "both",
+  hivstatus = "all",
+  test_type = "vcttests",
+  year_start = 2000,
+  year_end = 2023
+)
+
+# total VCT positives
+graph_tot_tests(
+  make_country[[cnt]],
+  cnt = cnt,
+  sex = "both",
+  hivstatus = "positive",
+  test_type = "vcttests",
+  year_start = 2000,
+  year_end = 2023
+)
+
+# total ANC
+graph_tot_tests(
+  make_country[[cnt]],
+  cnt = cnt,
+  sex = "both",
+  hivstatus = "all",
+  test_type = "anctests",
+  year_start = 2000,
+  year_end = 2023
+)
+
+# total ANC positives
+graph_tot_tests(
+  make_country[[cnt]],
+  cnt = cnt,
+  sex = "both",
+  hivstatus = "positive",
+  test_type = "anctests",
+  year_start = 2000,
+  year_end = 2023
+)
 
 # create a survey plot of all 6 age and sex groups
-
-source("anc testing/0.7 graphing functions.R")
-
 # this should have the full malawi simulation file from the prior steps
-survey_fit_all(make_country,cnt = "Malawi")
+survey_fit_all(make_country, cnt = "Malawi")
 
-survey_fit_postive(make_country,cnt = "Malawi")
-
+survey_fit_postive(make_country, cnt = "Malawi")
 
 ```
 
@@ -899,67 +951,25 @@ if (!(is.null(samp_1))) {
 
 ```
 
-#you now have all the data needed for graphing, below is a graph of total testing and then by time to diangoses and awareness
-
-# if you would like all the graphs in the paper the 3.0-3.6 provides all manuscirpt and supplemental 1 graphs, 4.0 provides supplemental 2 (alongside 4.1, svg vs word)
+----
+goal: visualizes time to diagnoses, awarness, and proportion unaware
+estimate: ~ 5 seconds 
+comments: all other graphs are aggregates(pooled or geospacial) or derivatives (ttd difference) of the following 3 graphs
+comments2: if you would like all the graphs in the paper 3.0-3.6 provides all manuscirpt and supplemental 1 graphs, 4.0 provides supplemental 2 (alongside 4.1, svg vs word) but these require original sets of PJNZ files
+outputs: time to diagnoses, number unaware, and proportion status awareness, compare to data_visualization files
+----
 
 ```{r graphing}
 
 cnt = "Malawi"
-source(paste0(path_anc, "/1.1 tot test out.R"))
-
 # graph the total tests from 2015 to 2023
-
-# total vct tests
-graph_tot_tests(
-  make_country[[cnt]],
-  cnt = cnt,
-  sex = "both",
-  hivstatus = "all",
-  test_type = "vcttests",
-  year_start = 2000,
-  year_end = 2023
-)
-# total VCT positives
-graph_tot_tests(
-  make_country[[cnt]],
-  cnt = cnt,
-  sex = "both",
-  hivstatus = "positive",
-  test_type = "vcttests",
-  year_start = 2000,
-  year_end = 2023
-)
-
-
-
-# total ANC
-graph_tot_tests(
-  make_country[[cnt]],
-  cnt = cnt,
-  sex = "both",
-  hivstatus = "all",
-  test_type = "anctests",
-  year_start = 2000,
-  year_end = 2023
-)
-
-# total ANC positives
-graph_tot_tests(
-  make_country[[cnt]],
-  cnt = cnt,
-  sex = "both",
-  hivstatus = "positive",
-  test_type = "anctests",
-  year_start = 2000,
-  year_end = 2023
-)
-cnt = "Malawi"
-source("anc testing/0.7 graphing functions.R")
 # plots time to diagnoses for Malawi for both counterfactual and observed 
 counterfactual_ttd(make_country, cnt)
 
 # plots awareness
 counter_awareness(make_country, cnt)
+
+# plot number unaware
+counter_unaware(make_country,cnt)
 
 ```
