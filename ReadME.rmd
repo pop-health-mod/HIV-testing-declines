@@ -2,19 +2,30 @@
   output: github_document
 ---
   
+  
+----
+goal: download and install required packages, load source files
+estimate: 
 ```{r setup, include = FALSE}
+packages <- c(
+  "scales", "tidyverse", "rnaturalearth", "rnaturalearthdata",
+  "sf", "ggnewscale", "devtools", "data.table", "Matrix", "Rcpp",
+  "stringi", "ggh4x", "forcats", "ggtext", "terra", "gridExtra"
+)
+to_install <- packages[!packages %in% installed.packages()[, "Package"]]
+
+if (length(to_install) > 0) {
+  install.packages(to_install)
+}
+# load all packages
+invisible(lapply(packages, library, character.only = TRUE))
 
 # download and set up first 90 package
 # first90
-# devtools::install_github("mrc-ide/first90release")
-#requires a range of R packages
-
-
-library(devtools)
-library(tidyverse)
-library(data.table)
-library(Matrix)
-library(Rcpp)
+if(!"first90" %in% installed.packages()[, "Package"]){
+ devtools::install_github("mrc-ide/first90release")
+}
+library(first90)
 
 # source functions
 source(here::here("anc testing/0.1 extracting pjnz functions.R"))

@@ -1,9 +1,3 @@
-library(dplyr)
-library(ggplot2)
-library(reshape2)
-library(first90)
-library(Matrix)
-library(Rcpp)
 source("anc testing/1.0 simmod.R")
 source("anc testing/1.1 tot test out.R")
 

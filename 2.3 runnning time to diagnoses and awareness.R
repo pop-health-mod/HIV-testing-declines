@@ -4,11 +4,6 @@ source(paste0(here::here("anc testing"), "/0.5 simul-aware-functions.R"))
 counter_year <- read_rds("anc testing/data/counter_years.rds")
 counter_anc_years <- read_rds("anc testing/data/counter_anc_years.rds")
 
-library(Matrix)
-library(first90)
-library(tidyverse)
-library(Rcpp)
-
 path_anc <- here::here("anc testing")
 make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final.rds"))
 

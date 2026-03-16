@@ -1,8 +1,3 @@
-library(tidyverse)
-library(ggplot2)
-library(ggtext)
-library(scales)
-library(terra)
 source("anc testing/1.0 simmod.R")
 
 # extract the PMTCT information from the Spectrum files

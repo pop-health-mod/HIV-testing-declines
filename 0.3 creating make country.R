@@ -1,7 +1,5 @@
 source(here::here("anc testing/0.1 extracting pjnz functions.R"))
 
-library(tidyverse)
-
 # ---- make country creation ----
 # obtain full pjnz list
 pjnz_list = list.files(pattern = "\\.pjnz$", full.names = TRUE,recursive = T,ignore.case = T)

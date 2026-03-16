@@ -4,15 +4,6 @@ source("anc testing/1.0 simmod.R")
 path_out <- here::here("outputs/paper 2026/TDX")
 counter_years <-  read_rds("anc testing/data/counter_years.rds")
 
-library(scales)  # Needed for formatting
-library(first90)
-library(tidyverse)
-library(ggplot2)
-library(rnaturalearth)
-library(rnaturalearthdata)
-library(sf)
-library(ggnewscale)
-
 tdx_agg_simul_male_diff = list()
 tdx_agg_simul_female_diff = list()
 simul_tdxM = readRDS("outputs/male tdx observed.rda")

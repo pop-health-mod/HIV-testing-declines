@@ -1,6 +1,4 @@
-library(first90)
-library(Matrix)
-library(Rcpp)
+
 path_anc <- here::here("anc testing")
 
 source(paste0(path_anc,"/1.0 simmod.R"))

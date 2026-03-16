@@ -1,5 +1,4 @@
-library(data.table)
-library(ggplot2)
+
 source("anc testing/0.5 simul-aware-functions.R")
 source("anc testing/1.0 simmod.R")
 path_out <- here::here("outputs/paper 2026/TDX")
@@ -593,12 +592,6 @@ ggsave(
 
 #====geographical status awarness====
 
-library(rnaturalearth)
-library(rnaturalearthdata)
-library(sf)
-library(ggnewscale)
-library(tidyverse)
-
 # Get the world map (western sahara missing to align with UNAIDS)
 world <-
   read_sf("ne_10m_admin_0_countries_vnm/ne_10m_admin_0_countries_vnm.shp")
@@ -894,11 +887,6 @@ ggsave(
 
 
 #==== counter geographicalstatus awarness====
-
-library(rnaturalearth)
-library(rnaturalearthdata)
-library(sf)
-library(ggnewscale)
 
 ## -----female aware ----
 #this makes a data frame of testing by year for all countries, col 9 is decline in testing

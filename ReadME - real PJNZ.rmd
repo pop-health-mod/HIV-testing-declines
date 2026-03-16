@@ -4,19 +4,37 @@
   
 ```{r setup, include = FALSE}
 
+packages <- c(
+  "scales", "tidyverse", "rnaturalearth", "rnaturalearthdata",
+  "sf", "ggnewscale", "devtools", "data.table", "Matrix", "Rcpp",
+  "stringi", "ggh4x", "forcats", "ggtext", "terra", "gridExtra"
+)
+to_install <- packages[!packages %in% installed.packages()[, "Package"]]
+
+if (length(to_install) > 0) {
+  install.packages(to_install)
+}
+# load all packages
+invisible(lapply(packages, library, character.only = TRUE))
+
 # download and set up first 90 package
 # first90
-devtools::install_github("mrc-ide/first90release")
-install.packages("specio")
-library(devtools)
-library(tidyverse)
-library(data.table)
-library(Matrix)
+if(!"first90" %in% installed.packages()[, "Package"]){
+ devtools::install_github("mrc-ide/first90release")
+}
+library(first90)
 
 # source functions
-source("anc testing/0.1 extracting pjnz functions.R")
-source("anc testing/0.4 functions.R")
-source("anc testing/0.5 simul-aware-functions.R")
+source(here::here("anc testing/0.1 extracting pjnz functions.R"))
+source(here::here("anc testing/0.4 functions.R"))
+source(here::here("anc testing/0.5 simul-aware-functions.R"))
+source(here::here("anc testing/0.6 time dx functions.R"))
+source(here::here("anc testing/0.7 graphing functions.R"))
+
+
+source(here::here("anc testing/1.0 simmod.R"))
+source(here::here("anc testing/1.1 tot test out.R"))
+
 
 ```
 
@@ -57,7 +75,7 @@ source("anc testing/0.3 creating make country.R")
 # and provide a full link as needed
 pjnz_list = list.files(pattern = "\\.pjnz$", full.names = TRUE,recursive = T,ignore.case = T)
 
-# we are using the 30th file as it is Malawi in my case
+# we are using the 30th file as it is Malawi in my case, adjust as needed
 pjnz <- pjnz_list[30]
 
 cnt <- first90::read_country(pjnz)
@@ -88,34 +106,10 @@ first90::plot_pjnz_inc(pjnz_summary)
 
 # here a synthetic data point and program point are created as an exampl
 age_group <- c('15-24','25-34','35-49')
-# Import and prepare your survey data
-survey_hts <- data.frame(country="Malawi",
-                         surveyid="Survey1",
-                         year=2000,
-                         agegr="15-99",
-                         sex="both",
-                         outcome="evertest",
-                         hivstatus="positive",
-                         est=0.553,
-                         se=0.0159,
-                         ci_l=2.5652e-12,
-                         ci_u=8958e-12,
-                         counts=16168)
 
-dat <- first90::select_hts(survey_hts, cnt, age_group)
+dat <- first90::select_hts(make_country$Malawi$survey_hts, cnt, age_group)
 
-# Import and prepare your programmatic data
-prgm_dat <- data.frame(country = "Malawi",
-                       year = 2010,
-                       sex = 'both',
-                       agegr = "15-99",
-                       tot = 215269,
-                       totpos = 50115,
-                       vct = 107634,
-                       vctpos = 25057,
-                       anc = 107635,
-                       ancpos = 25058)
-prg_dat <- first90::select_prgmdata(prgm_dat, cnt, age_group)
+prg_dat <- first90::select_prgmdata(make_country$Malawi$prgm_dat, cnt, age_group)
 
 # We visualize the program data
 first90::plot_inputdata(prg_dat, fp)

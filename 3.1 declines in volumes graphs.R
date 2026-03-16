@@ -1,11 +1,3 @@
-library(scales)
-library(first90)
-library(tidyverse)
-library(rnaturalearth)
-library(rnaturalearthdata)
-library(sf)
-library(ggnewscale)
-
 path_out <- here::here("outputs/Paper 2026/volume decline/")
 
 path_anc <- here::here("anc testing")

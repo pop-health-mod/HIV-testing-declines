@@ -1,9 +1,3 @@
-library(stringi)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(ggh4x)
-library(forcats)
 
 path_anc <- here::here("anc testing")
 make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final.rds"))
