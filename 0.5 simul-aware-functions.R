@@ -2,7 +2,6 @@ simul_aware_agg_counter <- function(samp, mod, fp,hivdemo_proj,pmtct, counter_ye
                                     age = c("15-24", "25-34", "35-49", "50-99"),
                                     sex = c("male", "female")) {
   
-  source("anc testing/1.0 simmod.R")
   library(Rcpp)
   n_year <- length(year)
   index_w <- year - fp$ss$proj_start + 1
@@ -65,8 +64,8 @@ simul_aware_agg_counter <- function(samp, mod, fp,hivdemo_proj,pmtct, counter_ye
   
   # Create parameters (proper scale, etc.), and simulate model
   fun_samp_par <- function(i, samp, mod, fp,hivdemo_proj,pmtct, poids, age_out_aware_ind, sex_out_aware_ind, year,counter_years,counter_anc) {
-    source("anc testing/1.0 simmod.R")
-    source("anc testing/1.1 tot test out.R")
+    source(paste0(here::here("anc testing"),"/1.0 simmod.R"))
+    source(paste0(here::here("anc testing"),"/1.1 tot test out.R"))
     
     sampi = samp[i,]
     
@@ -141,8 +140,6 @@ simul_aware_agg <- function(samp, mod, fp,hivdemo_proj,pmtct, year = c(2000:2020
                                     age = c("15-24", "25-34", "35-49", "50-99"),
                                     sex = c("male", "female")) {
   
-  source("anc testing/1.0 simmod.R")
-  source("anc testing/1.1 tot test out.R")
   library(Rcpp)
   n_year <- length(year)
   index_w <- year - fp$ss$proj_start + 1
@@ -190,8 +187,8 @@ simul_aware_agg <- function(samp, mod, fp,hivdemo_proj,pmtct, year = c(2000:2020
   #print("break")
   # Create parameters (proper scale, etc.), and simulate model
   fun_samp_par <- function(i, samp, mod, fp,hivdemo_proj,pmtct, poids, age_out_aware_ind, sex_out_aware_ind, year) {
-    source("anc testing/1.0 simmod.R")
-    source("anc testing/1.1 tot test out.R")
+    source(paste0(here::here("anc testing"),"/1.0 simmod.R"))
+    source(paste0(here::here("anc testing"),"/1.1 tot test out.R"))
     fp <- create_anc_param(samp[i, ], fp,pmtct = pmtct,hivdemo_proj = hivdemo_proj)
     
     mod <- simmod_anc_t(fp)

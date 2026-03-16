@@ -155,6 +155,16 @@ survey_fit_all <- function(make_country, cnt) {
 
 survey_fit_postive <- function(make_country,cnt){
   
+  panel_survey_theme <- theme(
+    plot.title.position = "panel",
+    plot.title = element_text(hjust = 0.5, size = 12),
+    plot.margin = margin(0, 0, 0, 0),
+    axis.title.y = element_text(
+      #margin = margin(r = 3),
+      size = 12
+    ),
+    
+  )
   ## survey fits totpos----
   
   # female hiv+
@@ -226,8 +236,8 @@ counterfactual_ttd <- function(make_country, cnt){
   malettd = Agg_simul_pool_time_dx_prev(out_simul_tdx_all = make_country[[cnt]]$tdx_male$out_simul_tdx_all,year = 2015:2023,sex = "male")
   femalettd = Agg_simul_pool_time_dx_prev(out_simul_tdx_all = make_country[[cnt]]$tdx_female$out_simul_tdx_all,year = 2015:2023,sex = "female")
   
-  start_year = 2015
-  end_year = 2023
+  
+  
   col = "firebrick3"
   col2 = "steelblue"
   
@@ -244,11 +254,11 @@ counterfactual_ttd <- function(make_country, cnt){
                   alpha = 0.3) +
       geom_line(data = malettd,aes(y = time_dx, x = year), color = col2,linewidth = 1)+
       theme_minimal() +
-      labs(title = paste0("Median Time to Diagnosis or AIDS Death\namong Men in ",cnt," between ",start_year," and ",end_year), 
+      labs(title = paste0("Median Time to Diagnosis or AIDS Death\namong Men in ",cnt," between ",2015," and ",2023), 
            x = "Year", 
            y = "Median Years to Diagnosis or AIDS Death")+
-      scale_x_continuous(breaks = c(seq(start_year, end_year, 1),2023),
-                         limits = c(start_year, 2023))+
+      scale_x_continuous(breaks = c(seq(2015, 2023, 1),2023),
+                         limits = c(2015, 2023))+
       scale_y_continuous(limits = c(0,maxttm))+
       theme(
         axis.title.x = element_text(size = 12),
@@ -265,11 +275,11 @@ counterfactual_ttd <- function(make_country, cnt){
                   alpha = 0.2)+
       geom_line(data = femalettd,aes(y = time_dx, x = year), color = col,linewidth = 1)+
       theme_minimal() +
-      labs(title = paste0("Median Time to Diagnosis or AIDS Death\namong Women in ",cnt," between ",start_year," and ",end_year), 
+      labs(title = paste0("Median Time to Diagnosis or AIDS Death\namong Women in ",cnt," between ",2015," and ",2023), 
            x = "Year", 
            y = "Median Years to Diagnosis or AIDS Death")+
-      scale_x_continuous(breaks = c(seq(start_year, end_year, 1),2023),
-                         limits = c(start_year, 2023))+
+      scale_x_continuous(breaks = c(seq(2015, 2023, 1),2023),
+                         limits = c(2015, 2023))+
       scale_y_continuous(limits = c(0,maxttf))+
       theme(
         axis.title.x = element_text(size = 12),
@@ -299,11 +309,11 @@ counterfactual_ttd <- function(make_country, cnt){
                   alpha = 0.2)+
       geom_line(data = femalettd_counter,aes(y = time_dx, x = year), color = col,linewidth = 1,linetype = 2)+
       theme_minimal() +
-      labs(title = paste0("Observed and Counterfactual Median Time to Diagnosis or AIDS Death\namong Women in ",cnt," between ",start_year," and ",end_year), 
+      labs(title = paste0("Observed and Counterfactual Median Time to Diagnosis or AIDS Death\namong Women in ",cnt," between ",2015," and ",2023), 
            x = "Year", 
            y = "Median Years to Diagnosis or AIDS Death")+
-      scale_x_continuous(breaks = c(seq(start_year, end_year, 1),2023),
-                         limits = c(start_year, 2023))+
+      scale_x_continuous(breaks = c(seq(2015, 2023, 1),2023),
+                         limits = c(2015, 2023))+
       scale_y_continuous(limits = c(0,maxttf))+
       # #Add legend for Line 1
       annotate("segment", x = 2016.1,xend = 2016.4,y = maxttf*0.1,yend = maxttf*0.1 ,color = "firebrick3", linewidth = 1,linetype = 2)+
@@ -335,11 +345,11 @@ counterfactual_ttd <- function(make_country, cnt){
                   alpha = 0.3) +
       geom_line(data = malettd_counter,aes(y = time_dx, x = year), color = col2,linewidth = 1,linetype = 2)+
       theme_minimal() +
-      labs(title = paste0("Observed and Counterfactual Median Time to Diagnosis or AIDS Death\namong Men in ",cnt," between ",start_year," and ",end_year), 
+      labs(title = paste0("Observed and Counterfactual Median Time to Diagnosis or AIDS Death\namong Men in ",cnt," between ",2015," and ",2023), 
            x = "Year", 
            y = "Median Years to Diagnosis or AIDS Death")+
-      scale_x_continuous(breaks = c(seq(start_year, end_year, 1),2023),
-                         limits = c(start_year, 2023))+
+      scale_x_continuous(breaks = c(seq(2015, 2023, 1),2023),
+                         limits = c(2015, 2023))+
       scale_y_continuous(limits = c(0,maxttm))+
       # #Add legend for Line 1
       annotate("segment", x = 2016.1,xend = 2016.4,y = maxttm*0.1,yend = maxttm*0.1 ,color = "steelblue", linewidth = 1,linetype = 2)+
@@ -383,8 +393,8 @@ counter_awareness <- function(make_country,cnt){
   
   
   
-  start_year = 2015
-  end_year = 2023
+  
+  
   
   if(is.null(make_country[[cnt]]$aware_male_counter)){
     
@@ -400,11 +410,11 @@ counter_awareness <- function(make_country,cnt){
       
       geom_hline(yintercept = 0.95,linetype = 3)+
       theme_minimal() +
-      labs(title = paste0("Proportion WLHIV Aware of Their Status in ",cnt,": ",start_year,"-",end_year), 
+      labs(title = paste0("Proportion WLHIV Aware of Their Status in ",cnt,": ",2015,"-",2023), 
            x = "Year", 
            y = "Proportion WLHIV aware ")+
-      scale_x_continuous(breaks = seq(start_year, end_year, 1),
-                         limits = c(start_year, 2023))+
+      scale_x_continuous(breaks = seq(2015, 2023, 1),
+                         limits = c(2015, 2023))+
       scale_y_continuous(limits = c(0,1),breaks = c(seq(0.00, 0.95, 0.20),0.95))+
       theme(
         axis.title.x = element_text(size = 12),
@@ -434,11 +444,11 @@ counter_awareness <- function(make_country,cnt){
       geom_line(data = get(varc),aes(y = propaware, x = year), color = col,linewidth = 1,linetype = 2)+
       geom_hline(yintercept = 0.95,linetype = 3)+
       theme_minimal() +
-      labs(title = paste0("Proportion WLHIV Aware of Their Status in ",cnt,": ",start_year,"-",end_year), 
+      labs(title = paste0("Proportion WLHIV Aware of Their Status in ",cnt,": ",2015,"-",2023), 
            x = "Year", 
            y = "Proportion WLHIV aware ")+
-      scale_x_continuous(breaks = seq(start_year, end_year, 1),
-                         limits = c(start_year, 2023))+
+      scale_x_continuous(breaks = seq(2015, 2023, 1),
+                         limits = c(2015, 2023))+
       scale_y_continuous(limits = c(0,1),breaks = c(seq(0.00, 0.95, 0.20),0.95))+
       annotate("segment", x = 2020.3,xend = 2020.8,y = 0.1,yend = 0.1 ,color = col, linewidth = 1)+
       annotate("segment", x = 2020.3,xend = 2020.8,y = 0.17,yend = 0.17 ,color = col, linewidth = 1,linetype = "dashed")+
@@ -466,11 +476,11 @@ counter_awareness <- function(make_country,cnt){
       
       geom_hline(yintercept = 0.95,linetype = 3)+
       theme_minimal() +
-      labs(title = paste0("Proportion MLHIV Aware of Their Status in ",cnt,": ",start_year,"-",end_year), 
+      labs(title = paste0("Proportion MLHIV Aware of Their Status in ",cnt,": ",2015,"-",2023), 
            x = "Year", 
            y = "Proportion MLHIV aware ")+
-      scale_x_continuous(breaks = seq(start_year, end_year, 1),
-                         limits = c(start_year, 2023))+
+      scale_x_continuous(breaks = seq(2015, 2023, 1),
+                         limits = c(2015, 2023))+
       scale_y_continuous(limits = c(0,1),breaks = c(seq(0.00, 0.95, 0.20),0.95))+
       theme(
         axis.title.x = element_text(size = 12),
@@ -500,11 +510,11 @@ counter_awareness <- function(make_country,cnt){
       geom_line(data = get(varc2),aes(y = propaware, x = year), color = col2,linewidth = 1,linetype = 2)+
       geom_hline(yintercept = 0.95,linetype = 3)+
       theme_minimal() +
-      labs(title = paste0("Proportion MLHIV Aware of Their Status in ",cnt,": ",start_year,"-",end_year), 
+      labs(title = paste0("Proportion MLHIV Aware of Their Status in ",cnt,": ",2015,"-",2023), 
            x = "Year", 
            y = "Proportion MLHIV aware ")+
-      scale_x_continuous(breaks = seq(start_year, end_year, 1),
-                         limits = c(start_year, 2023))+
+      scale_x_continuous(breaks = seq(2015, 2023, 1),
+                         limits = c(2015, 2023))+
       scale_y_continuous(limits = c(0,1),breaks = c(seq(0.00, 0.95, 0.20),0.95))+
       annotate("segment", x = 2020.3,xend = 2020.8,y = 0.1,yend = 0.1 ,color = "steelblue", linewidth = 1)+
       annotate("segment", x = 2020.3,xend = 2020.8,y = 0.17,yend = 0.17 ,color = "steelblue", linewidth = 1,linetype = "dashed")+
@@ -519,4 +529,409 @@ counter_awareness <- function(make_country,cnt){
     
   }
   awareplotmale + awareplotfemale
+}
+
+counter_unaware <- function(make_country,cnt){
+ 
+  unaware = make_country[[i]]$simul$unaware
+  unaware_counter = make_country[[i]]$counter_simul$unaware
+  
+  #find decrease in both
+  unaware_obs_b = subset(getci(unaware), (sex == "both" &
+                                            agegr == "15+"))
+  unaware_obs_b$count = "observed"
+  unaware_obs_b$mid = subset(
+    cbind(
+      unaware[, (1:5)],
+      apply(
+        X = unaware[, (6:3005)],
+        MARGIN = 1,
+        FUN = stats::quantile,
+        probs = c(0.5),
+        na.rm = TRUE
+      )
+    ), (sex == "both" & agegr == "15+")
+  )[, 6]
+  
+  unaware_counter_b = subset(getci(unaware_counter), (sex == "both" &
+                                                        agegr == "15+"))
+  unaware_counter_b$count = "counter"
+  unaware_counter_b$mid = subset(cbind(
+    unaware_counter[, (1:5)],
+    apply(
+      X = unaware_counter[, (6:3005)],
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )
+  ),
+  (sex == "both" &
+     agegr == "15+"))[, 6]
+  
+  #find decrease in both
+  unaware_obs_b = subset(getci(unaware), (sex == "both" &
+                                            agegr == "15+"))
+  unaware_obs_b$count = "observed"
+  unaware_obs_b$mid = subset(
+    cbind(
+      unaware[, (1:5)],
+      apply(
+        X = unaware[, (6:3005)],
+        MARGIN = 1,
+        FUN = stats::quantile,
+        probs = c(0.5),
+        na.rm = TRUE
+      )
+    ), (sex == "both" & agegr == "15+")
+  )[, 6]
+  
+  #find prop of PLHIV due to declines
+  unaware_counter_b = subset(getci(cbind(
+    unaware_counter[, (1:5)],
+    (unaware[,6:3005] - unaware_counter[,6:3005])/unaware[,6:3005])),
+    (sex == "both" & agegr == "15+"))
+  
+  
+  unaware_counter_b$count = "counter"
+  unaware_counter_b$mid = subset(cbind(
+    unaware_counter[, (1:5)],
+    apply(
+      X =  (unaware[,6:3005] - unaware_counter[,6:3005])/unaware[,6:3005],
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )),(sex == "both" &
+     agegr == "15+"))[, 6]
+  
+  unaware_counter_b[24,c(9,6,7)]
+  
+  #find % increase in PLHIV due to declines
+  unaware_counter_b = subset(getci(cbind(
+    unaware_counter[, (1:5)],
+    unaware[,6:3005]/unaware_counter[,6:3005])),
+    (sex == "both" & agegr == "15+"))
+  
+  
+  unaware_counter_b$count = "counter"
+  unaware_counter_b$mid = subset(cbind(
+    unaware_counter[, (1:5)],
+    apply(
+      X = (unaware[,6:3005]/unaware_counter[,6:3005]),
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )
+  ),
+  (sex == "both" &
+     agegr == "15+"))[, 6]
+  
+  unaware_counter_b[24,c(9,6,7)]
+  
+  # for abstract/paper male/female PLHIV prop
+  #find PLHIV prop due to declines
+  unaware_male_increase = subset(getci(cbind(
+    unaware_counter[, (1:5)],
+    (unaware[,6:3005] - unaware_counter[,6:3005])/unaware[,6:3005])),
+    (sex == "male" & agegr == "15+"))
+  
+  
+  unaware_male_increase$mid = subset(cbind(
+    unaware_counter[, (1:5)],
+    apply(
+      X = (unaware[,6:3005]/unaware_counter[,6:3005]),
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )
+  ),
+  (sex == "male" &
+     agegr == "15+"))[, 6]
+  
+  unaware_male_increase[24,c(8,6,7)]
+  
+  #find PLHIV prop due to declines
+  unaware_female_increase = subset(getci(cbind(
+    unaware_counter[, (1:5)],
+    (unaware[,6:3005] - unaware_counter[,6:3005])/unaware[,6:3005])),
+    (sex == "female" & agegr == "15+"))
+  
+  
+  unaware_female_increase$mid = subset(cbind(
+    unaware_counter[, (1:5)],
+    apply(
+      X = (unaware[,6:3005]/unaware_counter[,6:3005]),
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )
+  ),
+  (sex == "female" &
+     agegr == "15+"))[, 6]
+  
+  unaware_female_increase[24,c(8,6,7)]
+  
+  
+  
+  # for graph
+  unaware_obs_m = subset(getci(unaware), (sex == "male" &
+                                            agegr == "15+"))
+  unaware_obs_m$count = "observed"
+  unaware_obs_m$mid = subset(cbind(
+    unaware[, (1:5)],
+    apply(
+      X = unaware[, (6:3005)],
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )
+  ),
+  (sex == "male" &
+     agegr == "15+"))[, 6]
+  
+  unaware_counter_m = subset(getci(unaware_counter), (sex == "male" &
+                                                        agegr == "15+"))
+  unaware_counter_m$count = "counter"
+  unaware_counter_m$mid = subset(cbind(
+    unaware_counter[, (1:5)],
+    apply(
+      X = unaware_counter[, (6:3005)],
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )
+  ),
+  (sex == "male" &
+     agegr == "15+"))[, 6]
+  unaware_m = rbind(unaware_counter_m, unaware_obs_m)
+  
+  
+  unaware_obs_f = subset(getci(unaware), (sex == "female" &
+                                            agegr == "15+"))
+  unaware_obs_f$count = "observed"
+  unaware_obs_f$mid = subset(cbind(
+    unaware[, (1:5)],
+    apply(
+      X = unaware[, (6:3005)],
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )
+  ),
+  (sex == "female" &
+     agegr == "15+"))[, 6]
+  
+  unaware_counter_f = subset(getci(unaware_counter), (sex == "female" &
+                                                        agegr == "15+"))
+  unaware_counter_f$count = "counter"
+  unaware_counter_f$mid = subset(cbind(
+    unaware_counter[, (1:5)],
+    apply(
+      X = unaware_counter[, (6:3005)],
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )
+  ),
+  (sex == "female" &
+     agegr == "15+"))[, 6]
+  unaware_f = rbind(unaware_counter_f, unaware_obs_f)
+  
+  unaware_m$sex = "Male"
+  unaware_f$sex = "Female"
+  
+  unaware_sex = rbind(unaware_m, unaware_f)
+  
+  unaware_plot = ggplot(unaware_sex) +
+    geom_line(aes(
+      x = year,
+      y = mid,
+      linetype = count,
+      group = interaction(count, sex),
+      colour = sex
+    )) +
+    geom_ribbon(aes(
+      x = year,
+      ymin = lower ,
+      ymax = upper ,
+      group = interaction(count, sex),
+      fill = sex
+    ),
+    alpha = 0.4) +
+    #geom_area(aes(x = year,y=upper,group = count, fill = count),alpha = 0.2)+
+    scale_y_continuous(limits = c(0, max(unaware_sex$upper[unaware_sex$year%in% 2015:2023])*1.15)) +
+    scale_x_continuous(limits = c(2015, 2023),
+                       breaks = 2015:2023) +
+    theme_minimal() +
+    labs(
+      title = paste0(
+        "Number of Undiagnosed PLHIV\nPooled in Countries with a Decline:\n",
+        2015,
+        "-",
+        2023
+      ),
+      x = NULL,
+      y = "Number of Undiagosed PLHIV (millions)"
+    ) +
+    scale_linetype_manual(
+      name = "Scenario",
+      label = c("observed" = "Observed",
+                "counter" = "Counterfactual"),
+      values = c("observed" = 1,
+                 "counter" = 2)
+    ) +
+    scale_fill_manual(name = "Sex",
+                      values = c("Male" = "steelblue",
+                                 "Female" = "firebrick3")) +
+    scale_colour_manual(name = "Sex",
+                        values = c("Male" = "steelblue",
+                                   "Female" = "firebrick3")) +
+    theme(
+      legend.position = "none",
+      plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+      # Center the title,
+      axis.title.x = element_text(size = 15),
+      axis.title.y = element_text(size = 15),
+      axis.text.x = element_text(
+        size = 15,
+        angle = 45,
+        vjust = 1,
+        hjust = 1
+      ),
+      axis.text.y = element_text(size = 15),
+      #legend.text = element_text(size = 15)
+    )
+  
+  
+  #use unaware tot
+  unaware_tot = as.data.frame(matrix(nrow = 465, ncol = 3006, data = 0))
+  unaware_tot = cbind(make_country[[i]]$simul$unaware[, 1:5],
+                      unaware[,6:3005] - unaware_counter[,(6:3005)])
+  
+  unaware_obs_tot_m = subset(getci(unaware_tot), (sex == "male" &
+                                                    agegr == "15+"))
+  unaware_obs_tot_m$count = "observed"
+  unaware_obs_tot_m$mid = subset(cbind(
+    unaware_tot[, (1:5)],
+    apply(
+      X = unaware_tot[, (6:3005)],
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )
+  ),
+  (sex == "male" &
+     agegr == "15+"))[, 6]
+  
+  
+  
+  unaware_obs_tot_f = subset(getci(unaware_tot), (sex == "female" &
+                                                    agegr == "15+"))
+  unaware_obs_tot_f$count = "observed"
+  unaware_obs_tot_f$mid = subset(cbind(
+    unaware_tot[, (1:5)],
+    apply(
+      X = unaware_tot[, (6:3005)],
+      MARGIN = 1,
+      FUN = stats::quantile,
+      probs = c(0.5),
+      na.rm = TRUE
+    )
+  ),
+  (sex == "female" &
+     agegr == "15+"))[, 6]
+  
+  
+  unaware_obs_tot_m$sex = "Male"
+  unaware_obs_tot_f$sex = "Female"
+  
+  unaware_tot_p = rbind(unaware_obs_tot_m, unaware_obs_tot_f)
+  
+  pd <-
+    position_dodge(width = 0.92)
+  
+  unaware_plot_tot = ggplot(unaware_tot_p) +
+    geom_col(aes(
+      x = year,
+      y = mid / 1000,
+      group = sex,
+      fill = sex
+    ),
+    position = pd,
+    alpha = 0.7) +
+    geom_errorbar(
+      aes(
+        x = year,
+        ymin = lower / 1000,
+        ymax = upper / 1000,
+        group = sex,
+        colour = sex
+      ),
+      position = pd,
+      alpha = 1,
+      linewidth = 0.6,
+      width = 0.5
+    ) +
+    geom_errorbar(
+      aes(
+        x = year,
+        ymin = lower / 1000,
+        ymax = upper / 1000,
+        group = sex
+      ),
+      position = pd,
+      alpha = 1,
+      linewidth = 0.2,
+      width = 0.5
+    ) +
+    #geom_area(aes(x = year,y=upper,group = count, fill = count),alpha = 0.2)+
+    #scale_y_continuous(limits = c(0,2e5/1000))+
+    scale_x_continuous(limits = c(2015, 2023.5),
+                       breaks = c(2015:2023)) +
+    theme_minimal() +
+    labs(
+      title = paste0(
+        "Additional Number of Undiagnosed \nPLHIV among Countries with a Decline: \n",
+        2015,
+        "-",
+        2023
+      ),
+      x = NULL,
+      y = "Number of Undiagosed PLHIV (Thousands)"
+    ) +
+    scale_fill_manual(name = "Sex",
+                      values = c("Male" = "steelblue",
+                                 "Female" = "firebrick3")) +
+    scale_colour_manual(name = "Sex",
+                        values = c("Male" = "steelblue",
+                                   "Female" = "firebrick3")) +
+    theme(
+      #legend.position = "none",
+      plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+      # Center the title,
+      axis.title.x = element_text(size = 15),
+      axis.title.y = element_text(size = 15),
+      axis.text.x = element_text(
+        size = 15,
+        angle = 45,
+        vjust = 1,
+        hjust = 1
+      ),
+      axis.text.y = element_text(size = 15),
+      #legend.text = element_text(size = 15)
+    )
+  
+  
+  unaware_plot_tot+unaware_plot
+  
+  
 }

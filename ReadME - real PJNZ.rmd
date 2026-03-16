@@ -6,25 +6,17 @@
 
 # download and set up first 90 package
 # first90
-# devtools::install_github("mrc-ide/first90release")
-#requires a range of R packages
-
-
+devtools::install_github("mrc-ide/first90release")
+install.packages("specio")
 library(devtools)
 library(tidyverse)
 library(data.table)
 library(Matrix)
-library(Rcpp)
 
 # source functions
-source(here::here("anc testing/0.1 extracting pjnz functions.R"))
-source(here::here("anc testing/0.4 functions.R"))
-source(here::here("anc testing/0.5 simul-aware-functions.R"))
-source(here::here("anc testing/0.6 time dx functions.R"))
-
-source(here::here("anc testing/1.0 simmod.R"))
-source(here::here("anc testing/1.1 tot test out.R"))
-
+source("anc testing/0.1 extracting pjnz functions.R")
+source("anc testing/0.4 functions.R")
+source("anc testing/0.5 simul-aware-functions.R")
 
 ```
 
@@ -38,81 +30,155 @@ The goal of shiny90 is to provide annual estimates of the proportion of PLHIV th
 
 This is an update to Shiny90 to include ANC estimates for the publication " The Impact of Declining HIV Testing in Africa on Time to HIV Diagnosis and Awareness of HIV Status: A Modeling Study of Population-Based Surveys and HIV Testing Program Data (2015-2023) "
 
-## Installation Example: Synthetic (based on Malawi)
-runtime : variable - depends on installation status
+## Installation
 
-comment: for using non synthetic files use "ReadMe - real PJNZ
-```{r inital loading, fig.height = 8, fig.width = 8, warning = FALSE}
+## Example: Malawi
 
-# load pre cleaned synthethic file
-Synthetic <- readRDS(here::here("anc testing/example files.rds"))
+This example demonstrates basic model steps.
 
-# align naming scheme with files
-make_country <- list()
-make_country$Synthetic <- Synthetic$make_country
+```{r example, fig.height = 8, fig.width = 8, warning = FALSE}
+# we initally perform descriptive plotting with the first 90 package
 
-pmtct_list <- list()
-pmtct_list$Synthetic <- Synthetic$pmtct
+# All PJNZ files are avilible publically but must be obtained from aidsinfo@unaids.org
+# example : "Malawi_2024_v11_ART_Num.pjnz"
 
-hivdemo_proj_list <- list()
-hivdemo_proj_list$Synthetic <- Synthetic$demo_proj 
 
-# extract fp 
-fp <- make_country$Synthetic$fp
+# requird befroe running: 
+# master survey file
+# survey_hts_master.rda
+# list of PJNZ files (updated for 2024 files)
+
+# creates and stores PMTCT and HIV demoproj files in here::here(data)
+source("anc testing/0.2 create PMTCT and HIVdemoproj.R")
+# creates and stores make country presimul files in here::here(data)
+source("anc testing/0.3 creating make country.R")
+
+# this finds all pjnz files(careful it will locate them in all dictionaries)
+# and provide a full link as needed
+pjnz_list = list.files(pattern = "\\.pjnz$", full.names = TRUE,recursive = T,ignore.case = T)
+
+# we are using the 30th file as it is Malawi in my case
+pjnz <- pjnz_list[30]
+
+cnt <- first90::read_country(pjnz)
+
+fp <- first90::prepare_inputs(pjnz)
+
+fp$popadjust <- FALSE
 
 # We visualize the PJNZ data
 first90::plot_pjnz(fp)
+```
 
-#define input data
+The following functions enable users to produce invidual plots.
+```{r sperate graphs}
+pjnz_summary <- first90::get_pjnz_summary_data(fp)
+first90::plot_pjnz_pop(pjnz_summary)
+first90::plot_pjnz_plhiv(pjnz_summary)
+first90::plot_pjnz_prv(pjnz_summary)
+first90::plot_pjnz_inc(pjnz_summary)
+```
+
+```{r, fig.height = 8, fig.width = 8, warning = FALSE}
+
+# to appropriatly model a country both survey and program data are required
+
+
+# if you have a set of PJNZ files, "0.3 creating make country" will automaticall extract these
+
+# here a synthetic data point and program point are created as an exampl
 age_group <- c('15-24','25-34','35-49')
-cnt = make_country$Synthetic$cnt
+# Import and prepare your survey data
+survey_hts <- data.frame(country="Malawi",
+                         surveyid="Survey1",
+                         year=2000,
+                         agegr="15-99",
+                         sex="both",
+                         outcome="evertest",
+                         hivstatus="positive",
+                         est=0.553,
+                         se=0.0159,
+                         ci_l=2.5652e-12,
+                         ci_u=8958e-12,
+                         counts=16168)
 
-# define clean suvery and program Synthetic
-dat <- first90::select_hts(make_country$Malawi$survey_hts, cnt, age_group)
+dat <- first90::select_hts(survey_hts, cnt, age_group)
 
-prg_dat <- first90::select_prgmdata(make_country$Synthetic$prgm_dat, cnt, age_group)
+# Import and prepare your programmatic data
+prgm_dat <- data.frame(country = "Malawi",
+                       year = 2010,
+                       sex = 'both',
+                       agegr = "15-99",
+                       tot = 215269,
+                       totpos = 50115,
+                       vct = 107634,
+                       vctpos = 25057,
+                       anc = 107635,
+                       ancpos = 25058)
+prg_dat <- first90::select_prgmdata(prgm_dat, cnt, age_group)
 
 # We visualize the program data
 first90::plot_inputdata(prg_dat, fp)
-
 ```
 
-estimate: 797 seconds
+The following functions enable users to produce individual plots.
+```{r seperate program}
+first90::plot_input_tot(prgm_dat, fp)
+first90::plot_input_totpos(prgm_dat, fp)
+first90::plot_input_anctot(prgm_dat, fp)
+first90::plot_input_ancpos(prgm_dat, fp)
+```
 
 ```{r, fig.height = 10, fig.width = 8.5, warning = FALSE}
-tic()
 
 # here the running of the simulation commences (examine 2.0 simulating Shiny90.R)
 
 # define path
 path_anc <- here::here("anc testing")
 
+source(paste0(path_anc,"/1.0 simmod.R"))
+source(paste0(path_anc,"/1.1 tot test out.R"))
+
+# you can now load the presimul file from 0.3 
+path_name = "/data/make_country_presimul.rds"
+make_country = readRDS(paste0(path_anc,path_name))
+
+# load the files created in 0.2
+# extract the PMTCT information from the Spectrum files
+pmtct_list <- readRDS(paste0(path_anc, "/data/pmtct_list_cnt.rds"))
+
+# extract the HIV/demographic projections
+hivdemo_proj_list <- readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
+
+
+
 # select which country you want to run - in this case Malawi
-country = make_country$Synthetic
+country = make_country$Malawi
 
 # confirm
 cnt = country$cnt
 print(cnt)
-age_group <- c('15-24','25-34','35-49')
-
+  
 # extract fp and data
 fp <- make_country[[cnt]]$fp
 pgrm_dat <- first90::select_prgmdata(make_country[[cnt]]$prgm_dat, cnt = cnt)
 survey_hts <- first90::select_hts(make_country[[cnt]]$survey_hts,
                                   cnt = cnt,
-                                  age_group = age_group)
+                                  age_group <- c('15-24', '25-34', '35-49'))
 
 # from 0.2 create PMTCT and HIV demoproj, Preventing monther to child and demographic projection information
 # select country specific pmtct
 pmtct <- pmtct_list[[cnt]]
 
-
 # select country specific demo proj
 hivdemo_proj <- hivdemo_proj_list[[cnt]]
 
 
+# Extract theta0 from first90 but add 2 more parameters
+data("theta0", package = "first90")
+theta1 = theta0
 # the shiny90-ANC used 3 more parameters than Shiny90 add them manually( for now)
-theta1
+theta1[1:52] = c(theta0, theta0[1:3])
 
 # create an initial projection
 fp <- create_anc_param(
@@ -215,13 +281,7 @@ fp <- create_anc_param(
   hivdemo_proj = hivdemo_proj
 )
 mod <- simmod_anc_t(fp)
-toc()
-```
 
-
-estimate 224 seconds
-```{r credible intervals}
-tic()
 # identify credible intervals
 simul <- simul.test.anc(
   opt = opt,
@@ -245,8 +305,8 @@ make_country[[cnt]]$opt <- opt
 make_country[[cnt]]$samp <- samp
 
 # save the file
-saveRDS(object = make_country, file = here::here('anc testing/data/make_country_simul_readme.rds'))
-toc()
+# saveRDS(object = make_country, file = here::here('anctesting/data/make_country_simul.rds'))
+
 ```
 
 The model fits by age and sex.
@@ -255,28 +315,27 @@ a more dealited example is provided in appendix-paper-creation which will provid
 
 # create a survey plot of all 6 age and sex groups
 
-source("0.7 graphing functions.R")
+source("anc testing/0.7 graphing functions.R")
 
 # this should have the full malawi simulation file from the prior steps
-survey_fit_all(make_country,cnt = "Synthetic")
+survey_fit_all(make_country,cnt = "Malawi")
 
-survey_fit_postive(make_country,cnt = "Synthetic")
+survey_fit_postive(make_country,cnt = "Malawi")
 
 
 ```
 
 # create counterfactual
-estimate 236 seconds
 ```{r, fig.height = 5, fig.width = 5, warning = FALSE}
-tic()
+
 # create a counterfactual
-source("2.1 counterfactual creation.R")
+source("anc testing/2.1 counterfactual creation.R")
 # this fucntion resets cnt need to readd malawi
-cnt = "Synthetic"
+cnt = "Malawi"
 
 #load the files
-counter_years <- readRDS("data/counter_years.rds")
-counter_anc_years <- readRDS("data/counter_years.rds")
+counter_years <- readRDS("anc testing/data/counter_years.rds")
+counter_anc_years <- readRDS("anc testing/data/counter_years.rds")
 
 
 # repeat many of the inital steps, which are now saved in make country
@@ -300,13 +359,14 @@ samp = make_country[[cnt]]$samp
 
 # specifies that we only care about Malawi
 counter_years_loop = counter_years[counter_years$country == cnt, ]
-counter_years_loop <- counter_years_loop[!is.na(counter_years_loop$country),]
 
 #clear all counter factual sample and pmtct
 samp_1 = NULL
 pmtct_1 = NULL
 
-if (!is.na(counter_years_loop$start)) {
+if (!is.na(counter_years[counter_years$country == cnt, ]$start)) {
+  # define counterfactuals
+  counter_years_loop = counter_years[counter_years$country == cnt, ]
   
   # Apply counterfactual opperation to every row of samp
   samp_new <- function(samp, counter_years_loop) {
@@ -352,7 +412,7 @@ if (!is.na(counter_years_loop$start)) {
     samp_1 = samp
   }
   if (is.na(counter_years_loop$start) &
-      is.na(counter_years_loop[1:3]$start)) {
+      is.na(counter_years[counter_years$country == cnt, 1:3]$start)) {
     print("skipping")
     next
   }
@@ -444,14 +504,13 @@ make_country[[cnt]]$counter_samp = samp_1
 # save again 
 saveRDS(
   object = make_country,
-  file = here::here('anc testing/data/make_country_simu_final_readme.rds')
+  file = here::here('anc testing/data/make_country_simul_final.rds')
 )
-toc()
+
 ```
-esimate: 1191
+
 ```{r time to diagnoses}
-tic()
-cnt = "Synthetic"
+cnt = "Malawi"
 
 # this functions by creating a counterfactual sample then runnign all time to diangoses on that sample and 
 
@@ -526,7 +585,9 @@ hivdemo_proj <- hivdemo_proj_list[[cnt]]
 samp_1 = NULL
 pmtct_1 = NULL
 
-if (!is.na(counter_years_loop$start)) {
+if (!is.na(counter_years[counter_years$country == cnt, ]$start)) {
+  # define counterfactuals
+  counter_years_loop = counter_years[counter_years$country == cnt, ]
   
   samp_1 <- make_country[[cnt]]$counter_samp
   
@@ -595,10 +656,10 @@ if (!is.na(counter_years_loop$start)) {
   
   if (length(Years_anc) > 0) {
     # adjust anctest
-    pmtct_1$anc_test[, Years_anc] = pmtct$anc_test[, which(names(pmtct$anc_test) %in% year_start)]
+    pmtct_1$anc_test[, Years_anc] = pmtct$anc_test[, which(names(pmtct$anc_test) == year_start)]
     # if needed adjust recive/need pmtct, all countries should have anctest but just incase one year is missing.
-    pmtct_1$receivepmtct[which(names(pmtct$anc_test) %in% Years_anc)] = pmtct$receivepmtct[which(names(pmtct$anc_test) %in% year_start)]
-    pmtct_1$needpmtct[which(names(pmtct$anc_test) %in% Years_anc)] = pmtct$needpmtct[which(names(pmtct$anc_test) %in% year_start)]
+    pmtct_1$receivepmtct[which(names(pmtct$anc_test) == Years_anc)] = pmtct$receivepmtct[which(names(pmtct$anc_test) == year_start)]
+    pmtct_1$needpmtct[which(names(pmtct$anc_test) == Years_anc)] = pmtct$needpmtct[which(names(pmtct$anc_test) == year_start)]
   }
 }
 
@@ -654,15 +715,15 @@ make_country[[cnt]]$tdx_male$out_simul_tdx_all = simul_tdxM
 make_country[[cnt]]$tdx_female$out_simul_tdx_all = simul_tdxF
 make_country[[cnt]]$tdx_both$out_simul_tdx_all = simul_tdxB
 
-# saveRDS(tdx_agg_simul_male,
-#         paste0(here::here("outputs"),
-#                "/male time to dx.rda"))
-# saveRDS(tdx_agg_simul_female,
-#         paste0(here::here("outputs"),
-#                "/female time to dx.rda"))
-# saveRDS(tdx_agg_simul_both,
-#         paste0(here::here("outputs"),
-#                "/both time to dx.rda"))
+saveRDS(tdx_agg_simul_male,
+        paste0(here::here("outputs"),
+               "/male time to dx.rda"))
+saveRDS(tdx_agg_simul_female,
+        paste0(here::here("outputs"),
+               "/female time to dx.rda"))
+saveRDS(tdx_agg_simul_both,
+        paste0(here::here("outputs"),
+               "/both time to dx.rda"))
 gc()
 
 
@@ -721,14 +782,14 @@ if (!(is.null(samp_1))) {
   make_country[[cnt]]$tdx_female_counter$out_simul_tdx_all = simul_tdxF_counter
   make_country[[cnt]]$tdx_both_counter$out_simul_tdx_all = simul_tdxB_counter
   
-  # saveRDS(tdx_agg_simul_male_counter,
-  #         paste0(here::here("outputs"), "/male time to dx counter.rda"))
-  # saveRDS(
-  #   tdx_agg_simul_female_counter,
-  #   paste0(here::here("outputs"), "/female time to dx counter.rda")
-  # )
-  # saveRDS(tdx_agg_simul_both_counter,
-  #         paste0(here::here("outputs"), "/both time to dx counter.rda"))
+  saveRDS(tdx_agg_simul_male_counter,
+          paste0(here::here("outputs"), "/male time to dx counter.rda"))
+  saveRDS(
+    tdx_agg_simul_female_counter,
+    paste0(here::here("outputs"), "/female time to dx counter.rda")
+  )
+  saveRDS(tdx_agg_simul_both_counter,
+          paste0(here::here("outputs"), "/both time to dx counter.rda"))
   gc()
 }
 
@@ -777,10 +838,10 @@ make_country[[cnt]]$aware_male$out_simul_aware_all = simul_m
 make_country[[cnt]]$aware_female$out_simul_aware_all = simul_f
 make_country[[cnt]]$aware_both$out_simul_aware_all = simul_b
 
-# saveRDS(aware_agg_simul_male, paste0(here::here("outputs"), "/male aware.rda"))
-# saveRDS(aware_agg_simul_female,
-#         paste0(here::here("outputs"), "/female aware.rda"))
-# saveRDS(aware_agg_simul_both, paste0(here::here("outputs"), "/both aware.rda"))
+saveRDS(aware_agg_simul_male, paste0(here::here("outputs"), "/male aware.rda"))
+saveRDS(aware_agg_simul_female,
+        paste0(here::here("outputs"), "/female aware.rda"))
+saveRDS(aware_agg_simul_both, paste0(here::here("outputs"), "/both aware.rda"))
 gc()
 
 # counterfactual simul
@@ -832,21 +893,16 @@ if (!(is.null(samp_1))) {
   make_country[[cnt]]$aware_female_counter$out_simul_aware_all = simul_f_counter
   make_country[[cnt]]$aware_both_counter$out_simul_aware_all = simul_b_counter
   
-  # saveRDS(aware_agg_simul_male_counter,
-  #         paste0(here::here("outputs"), "/male aware counter.rda"))
-  # saveRDS(aware_agg_simul_female_counter,
-  #         paste0(here::here("outputs"), "/female aware counter.rda"))
-  # saveRDS(aware_agg_simul_both_counter,
-  #         paste0(here::here("outputs"), "/both aware counter.rda"))
+  saveRDS(aware_agg_simul_male_counter,
+          paste0(here::here("outputs"), "/male aware counter.rda"))
+  saveRDS(aware_agg_simul_female_counter,
+          paste0(here::here("outputs"), "/female aware counter.rda"))
+  saveRDS(aware_agg_simul_both_counter,
+          paste0(here::here("outputs"), "/both aware counter.rda"))
   gc()
 }
 
-saveRDS(
-  object = make_country,
-  file = here::here('anc testing/data/make_country_simu_final_readme.rds')
-)
 
-toc()
 ```
 
 #you now have all the data needed for graphing, below is a graph of total testing and then by time to diangoses and awareness
@@ -855,7 +911,7 @@ toc()
 
 ```{r graphing}
 
-cnt = "Synthetic"
+cnt = "Malawi"
 source(paste0(path_anc, "/1.1 tot test out.R"))
 
 # graph the total tests from 2015 to 2023
@@ -904,16 +960,12 @@ graph_tot_tests(
   year_start = 2000,
   year_end = 2023
 )
-
-source("0.7 graphing functions.R")
-source("0.6 time dx functions.R")
+cnt = "Malawi"
+source("anc testing/0.7 graphing functions.R")
 # plots time to diagnoses for Malawi for both counterfactual and observed 
 counterfactual_ttd(make_country, cnt)
 
 # plots awareness
 counter_awareness(make_country, cnt)
-
-# plot number unaware
-counter_unaware(make_country,cnt)
 
 ```
