@@ -1,19 +1,3 @@
-
-source(paste0(path_anc, "/1.0 simmod.R"))
-source(paste0(path_anc, "/1.1 tot test out.R"))
-source(paste0(path_anc, "/0.6 time dx functions.R"))
-source(paste0(path_anc, "/0.5 simul-aware-functions.R"))
-
-library(Rcpp)
-library(Matrix)
-library(first90)
-library(tidyverse)
-library(patchwork)
-library(ggplot2)
-library(grid)
-library(gridExtra)
-library(data.table)
-
 survey_fit_all <- function(make_country, cnt) {
   ## survey fits tot----
   
@@ -391,11 +375,6 @@ counter_awareness <- function(make_country,cnt){
   aggpooledMale = Agg_simul_aware(make_country[[cnt]]$aware_male,age = c("15-99"),year = 2015:2023,sex = "male")
   aggpooledFemale = Agg_simul_aware(make_country[[cnt]]$aware_female,age = c("15-99"),year = 2015:2023,sex = "female")
   
-  
-  
-  
-  
-  
   if(is.null(make_country[[cnt]]$aware_male_counter)){
     
     maxaware = max(c(aggpooledFemale$uci,aggpooledMale$uci))
@@ -433,14 +412,14 @@ counter_awareness <- function(make_country,cnt){
       geom_ribbon(data = get(var), 
                   aes(x = year, ymin = lci, ymax = uci,group = 1), 
                   fill = col, 
-                  alpha = ifelse(sex1 == "female",0.2,0.3)) +
+                  alpha = ifelse(sex1 == "Female",0.2,0.3)) +
       
       geom_line(data = get(var),aes(y = propaware, x = year), color = col,linewidth = 1)+
       #women counter
       geom_ribbon(data = get(varc),
                   aes(x = year, ymin = lci, ymax = uci,group = 1),
-                  fill = col2,
-                  alpha = ifelse(sex1 == "female",0.2,0.3)) +
+                  fill = col,
+                  alpha = ifelse(sex1 == "Female",0.2,0.3)) +
       geom_line(data = get(varc),aes(y = propaware, x = year), color = col,linewidth = 1,linetype = 2)+
       geom_hline(yintercept = 0.95,linetype = 3)+
       theme_minimal() +

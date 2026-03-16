@@ -38,10 +38,7 @@ simmod_anc_t <- function(fp, anc_true = TRUE, VERSION = "C") {
       ## 1: calendar year (>= Spectrum 5.2)
       fp$projection_period_int <- match(fp$projection_period, c("midyear", "calendar")) - 1L # -1 for 0-based indexing
       
-      source1 <- "anc testing/src"
-      
-      sourceCpp(paste0(here::here(source1), "/eppasmancretestC.cpp"))
-      #sourceCpp("src/eppasmancretestC.cpp")
+      sourceCpp(paste0(here::here(src), "/eppasmancretestC.cpp"))
       
       mod <- eppasmancC(fp)
       attr(mod, "hivtests") <- attr(mod,"vcttests") + attr(mod,"anctests")

@@ -565,10 +565,10 @@ simul_time_dx_cr <- function(samp, mod, fp, pmtct, hivdemo_proj, year = c(2018:2
 #                           envir = environment())
 #   parallel::clusterEvalQ(cl, {
 #     library(Rcpp)
-#     source(paste0(here::here("anc testing"),"/1.0 simmod.R"))
-#     source(paste0(here::here("anc testing"),"/0.6 time dx functions.R"))
-#     source(paste0(here::here("anc testing"),"/src/time_dx_anc_cpp_cr.R"))
-#     })
+#     source(paste0(here::here("1.0 simmod.R")))
+#     source(paste0(here::here("0.6 time dx functions.R")))
+#     source(paste0(here::here("src/time_dx_anc_cpp_cr.R")))
+#   })
 #   val_lst <- parallel::parLapply(
 #     cl, 
 #     X = 1:nrow(samp), 
@@ -677,8 +677,8 @@ simul_pool_time_dx_agg_prev <- function(samp, mod, fp, year = c(2000:2018),
   if(parallel == T){
     # Create parameters (proper scale, etc.), and simulate model
     fun_samp_par <- function(i, samp, mod, fp, poids, age, sex, year, pmtct,hivdemo_proj) {
-      source(paste0(here::here("anc testing"),"/1.0 simmod.R"))
-      source(paste0(here::here("anc testing"),"/0.6 time dx functions.R"))
+      source(paste0(here::here("1.0 simmod.R")))
+      source(paste0(here::here("0.6 time dx functions.R")))
       
       fp <- create_anc_param(samp[i,], fp, pmtct = pmtct, hivdemo_proj = hivdemo_proj)
       mod <- simmod_anc_t(fp)
@@ -688,7 +688,7 @@ simul_pool_time_dx_agg_prev <- function(samp, mod, fp, year = c(2000:2018),
       rownames(result_i) <- NULL
       return(result_i)
     }
-    num_cores = parallel::detectCores()-5
+    num_cores = parallel::detectCores()-round(parallel::detectCores()/4,0)
     cl <- parallel::makeCluster(num_cores)  # Create a cluster with available cores
     parallel::clusterExport(cl, 
                             varlist = c("samp", "mod", "fp", "poids", "age", 
@@ -696,9 +696,9 @@ simul_pool_time_dx_agg_prev <- function(samp, mod, fp, year = c(2000:2018),
                             envir = environment())
     parallel::clusterEvalQ(cl, {
       library(Rcpp)
-      source(paste0(here::here("anc testing"),"/1.0 simmod.R"))
-      source(paste0(here::here("anc testing"),"/0.6 time dx functions.R"))
-      source(paste0(here::here("anc testing"),"/src/time_dx_anc_cpp_cr.R"))
+      source(paste0(here::here("1.0 simmod.R")))
+      source(paste0(here::here("0.6 time dx functions.R")))
+      source(paste0(here::here("src/time_dx_anc_cpp_cr.R")))
       })
     val_lst <- parallel::parLapply(
       cl, 

@@ -64,8 +64,8 @@ simul_aware_agg_counter <- function(samp, mod, fp,hivdemo_proj,pmtct, counter_ye
   
   # Create parameters (proper scale, etc.), and simulate model
   fun_samp_par <- function(i, samp, mod, fp,hivdemo_proj,pmtct, poids, age_out_aware_ind, sex_out_aware_ind, year,counter_years,counter_anc) {
-    source(paste0(here::here("anc testing"),"/1.0 simmod.R"))
-    source(paste0(here::here("anc testing"),"/1.1 tot test out.R"))
+    source(paste0(here::here("1.0 simmod.R")))
+    source(paste0(here::here("1.1 tot test out.R")))
     
     sampi = samp[i,]
     
@@ -99,7 +99,7 @@ simul_aware_agg_counter <- function(samp, mod, fp,hivdemo_proj,pmtct, counter_ye
   }
   
   
-  num_cores = parallel::detectCores()-5
+  num_cores = parallel::detectCores()-round(parallel::detectCores()/4,0)
   cl <- parallel::makeCluster(num_cores)  # Create a cluster with available cores
   parallel::clusterExport(cl, 
                           varlist = c("samp", "mod", "fp", "poids", "age_out_aware_ind", 
@@ -187,8 +187,8 @@ simul_aware_agg <- function(samp, mod, fp,hivdemo_proj,pmtct, year = c(2000:2020
   #print("break")
   # Create parameters (proper scale, etc.), and simulate model
   fun_samp_par <- function(i, samp, mod, fp,hivdemo_proj,pmtct, poids, age_out_aware_ind, sex_out_aware_ind, year) {
-    source(paste0(here::here("anc testing"),"/1.0 simmod.R"))
-    source(paste0(here::here("anc testing"),"/1.1 tot test out.R"))
+    source(paste0(here::here("1.0 simmod.R")))
+    source(paste0(here::here("1.1 tot test out.R")))
     fp <- create_anc_param(samp[i, ], fp,pmtct = pmtct,hivdemo_proj = hivdemo_proj)
     
     mod <- simmod_anc_t(fp)
@@ -200,7 +200,7 @@ simul_aware_agg <- function(samp, mod, fp,hivdemo_proj,pmtct, year = c(2000:2020
   }
   
   
-  num_cores = parallel::detectCores()-5
+  num_cores = parallel::detectCores()-round(parallel::detectCores()/4,0)
   cl <- parallel::makeCluster(num_cores)  # Create a cluster with available cores
   parallel::clusterExport(cl, 
                           varlist = c("samp", "mod", "fp", "poids", "age_out_aware_ind", 
