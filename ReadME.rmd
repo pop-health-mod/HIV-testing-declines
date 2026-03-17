@@ -1,12 +1,12 @@
 ----
-ReadMe for the publication: The Impact of Declining HIV Testing in Africa on Time to HIV Diagnosis and Awareness of HIV Status: A Modeling Study of Population-Based Surveys and HIV Testing Program Data (2015-2023) "
+README for the publication: The Impact of Declining HIV Testing in Africa on Time to HIV Diagnosis and Awareness of HIV Status: A Modeling Study of Population-Based Surveys and HIV Testing Program Data (2015–2023)
 
-The goal of shiny90 is to provide annual estimates of the proportion of PLHIV that are aware of their status, by combining estimates of PLHIV from EPP/Spectrum, annual programmatic data on the number of HIV tests performed (and yield), and nationally-representative survey of HIV testing behaviors. 
+The goal of Shiny90 is to provide annual estimates of the proportion of people living with HIV (PLHIV) who are aware of their status by combining estimates of PLHIV from EPP/Spectrum, annual programmatic data on the number of HIV tests performed (and test yield), and nationally representative surveys of HIV testing behaviors.
 
-This is an update to Shiny90 to include ANC estimates for the publication and the counterfactual to estimate the impacts of reductions in testing
+This is an update to Shiny90 that includes ANC estimates for the publication, as well as a counterfactual analysis to estimate the impact of reductions in testing.
 ----
-this script was tested and is only intended to work on windows, the package used to parallel computations is not functional on mac.
-
+This script was tested and is intended to work only on Windows. The package used to perform parallel computations is not functional on macOS.
+----
 This script was tested on two computers:
 
 specs PC1:
@@ -27,9 +27,6 @@ Both were tested on:
 R version 4.5.2
 RStudio-2026.01.1-403
 rtools 4.5
-
-
-
 ----
 goal: download and install required packages, load source files
 runtime: ~187 seconds (with no packages installed)
@@ -75,7 +72,7 @@ if (!dir.exists("data")) {
 ----
 goal: load example synthetic file (based off Malawi)
 runtime : 5 seconds
-comment: for full PJNZ files use "ReadMe - real PJNZ"
+comment: for analysis of full PJNZ files use "ReadMe - real PJNZ"
 ----
 ```{r inital loading, fig.height = 8, fig.width = 8, warning = FALSE}
 
@@ -116,18 +113,18 @@ first90::plot_inputdata(prg_dat, fp)
 ----
 goal: Perform optimization of example data set
 estimate: 797-1498 seconds
-comments: nedler-mead is used as a stochastic searching tool, some estimates may vary
+comments: Nedler-Mead is used as a stochastic searching tool, some estimates may vary
 outputs: optimized "make_country" file with a hessian
 ----
 ```{r simulation}
 
 
-# here the running of the simulation commences (examine 2.0 simulating Shiny90.R)
+# fit the example model to example data (see 2.0 simulating Shiny90.R)
 
 # define path
 path_anc <- here::here("anc testing")
 
-# select which country you want to run - in this case Malawi
+# select which country you want to run - in this case Synthetic
 country = make_country$Synthetic
 
 # confirm
@@ -142,7 +139,7 @@ survey_hts <- first90::select_hts(make_country[[cnt]]$survey_hts,
                                   cnt = cnt,
                                   age_group = age_group)
 
-# from 0.2 create PMTCT and HIV demoproj, Preventing monther to child and demographic projection information
+
 # select country specific pmtct
 pmtct <- pmtct_list[[cnt]]
 
@@ -153,10 +150,10 @@ hivdemo_proj <- hivdemo_proj_list[[cnt]]
 
 # the shiny90-ANC used 3 more parameters than Shiny90 add them manually
 # Extract theta0 from first90 but add 2 more parameters
-        data("theta0", package = "first90")
-        theta1 = theta0
-        theta1[1:52] = c(theta0,theta0[1:3])
-        
+data("theta0", package = "first90")
+theta1 = theta0
+theta1[1:52] = c(theta0, theta0[1:3])
+
 # create an initial projection
 fp <- create_anc_param(
   theta = theta1,
@@ -202,7 +199,7 @@ opt <- optim(
 # isolate optmized parameters
 theta1 = opt$par
 
-# recreate inital param from post nelder-mead
+# recreate inital param from nelder-mead optimized parameters
 fp <- create_anc_param(
   theta = theta1,
   fp = fp,
@@ -210,13 +207,14 @@ fp <- create_anc_param(
   hivdemo_proj = hivdemo_proj,
   verbose = T
 )
+
 # recreate likdat
 likdat <- prepare_anc_likdat(dat_evertest = survey_hts,
                              dat_prg = pgrm_dat,
                              fp = fp)
 
-#use independent opt1 vs opt again here to prevent some bugs
-# BFGS much better at finalizing the optimization
+# use independent opt1 vs opt again here to prevent some bugs
+# BFGS much better at finalizing the optimization, it is also able to calculate the hessian( required for CrI's)
 opt1 <- optim(
   theta1,
   ll_hts_anc,
@@ -297,9 +295,9 @@ saveRDS(object = make_country, file = here::here('data/make_country_simul_readme
 ```
 
 ----
-goal: visualize model fits to survey data by age and sex and to program data by anc and non-anc
+goal: visualize model fits. Survey data ("have you ever been tested for HIV") by age and sex. Program data by anc and non-anc
 estimate: ~ 10 seconds 
-comments: some error may be present due to stochastic runs of nelder-mead, if too different rerun prior 2 steps
+comments: some error may be present due to stochastic runs of nelder-mead, if too different from provided sample rerun prior 2 steps
 outputs: graphs of model fit, should match graphs in data_visualizations folder
 ----
 ```{r visualization 1, fig.height = 10, fig.width = 8.5, warning = FALSE}
@@ -359,8 +357,8 @@ survey_fit_postive(make_country, cnt = "Synthetic")
 ----
 goal: create the counterfactual with credible intervals
 estimate: ~ 236-337 seconds seconds
-comments: this uses the script 2.1 counterfactual creation rather than have a long series of code
-outputs: counter factual files
+comments: this calls the script "2.1 counterfactual creation" rather than rewrite the code
+outputs: counterfactual files, both identifies when declines occur and simulates counterfactual CrI's
 ----
 ```{r, fig.height = 5, fig.width = 5, warning = FALSE}
 
@@ -546,12 +544,18 @@ saveRDS(
 
 ----
 goal: simulates life tables for time to diagnoses and status awareness
-estimate: 1191 (~20 minutes) - 2077 (~40 minutes) seconds seconds
+estimate: 1191 (~20 minutes) - 2077 (~40 minutes) seconds 
 comments: This is a long chunk of code exceeding 20 minutes of computing time on a high end laptop, may take significantly longer the fewer cores are available, your computer will not be usable during this step
-comments2: if you have an error message about core usage, manually adjust the parallel::detectcores() line, leave at least 1 core free, at the moment it uses 3/4 of cores on the system
+######
+comments2: if you have an error message about core usage, manually adjust the parallel::detectcores() line in the "0.5 simul-aware-functions.R" and "0.6 time dx functions.R"  files, leave at least 1 core free, at the moment it uses 3/4 of cores on the system
+######
 outputs: time to diagnoses and status awareness files
 ----
 ```{r time to diagnoses}
+# reloads here incase a core count adjustment was required
+source(here::here("0.5 simul-aware-functions.R"))
+source(here::here("0.6 time dx functions.R"))
+
 
 cnt = "Synthetic"
 
@@ -923,16 +927,13 @@ saveRDS(
 
 
 ```
-
-
 ----
 goal: visualizes time to diagnoses, awarness, and proportion unaware
 estimate: ~ 5 seconds 
-comments: all other graphs are aggregates(pooled or geospacial) or derivatives (ttd difference) of the following 3 graphs
+comments: all other graphs are aggregates (pooled or geospacial) or derivatives (ttd difference) of the following 3 graphs
 comments2: if you would like all the graphs in the paper 3.0-3.6 provides all manuscirpt and supplemental 1 graphs, 4.0 provides supplemental 2 (alongside 4.1, svg vs word) but these require original sets of PJNZ files
 outputs: time to diagnoses, number unaware, and proportion status awareness, compare to data_visualization files
 ----
-
 ```{r graphing}
 
 cnt = "Synthetic"
