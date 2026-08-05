@@ -1,6 +1,7 @@
+library(ggh4x)
+library(tidyverse)
 
-path_anc <- here::here("anc testing")
-make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final.rds"))
+make_country = readRDS("outputs/AHD/make_country_simul_final.rds")
 
 
 # make survey program and ANC program data/ pmtct data avilibility graphs
@@ -118,13 +119,12 @@ survey_type <- function(survey_code) {
   )
 }
 
-
 #find participant numbers
 particpants = 0
 for (cnt in names(make_country)) {
   survey_hts = make_country[[cnt]]$survey_hts
   print(cnt)
-  print(sum(survey_hts$counts), na.rm = T)
+  print(sum(survey_hts$counts, na.rm = T))
   survey_hts[159, ]
   survey_hts <- survey_hts %>%
     mutate(
@@ -313,7 +313,6 @@ surveydf <- surveydf %>%
   left_join(country_base_y, by = "country") %>%
   mutate(y_pos = y_base * 1.5)
 
-
 # Make a named list of element_rect() for each region
 strip_theme <- strip_themed(
   background_y = list(
@@ -346,7 +345,7 @@ strip_theme <- strip_themed(
   )
 )
 
-
+library(stringi)
 # region then country, alphabetical
 country_levels <- surveydf %>%
   distinct(country, region) %>%
@@ -442,8 +441,8 @@ combined_plot <- ggplot() +
   ) +
   scale_shape_manual(
     values = c("15" = 15, "16" = 16, "17" = 17),
-    labels = c("Female", "Both", "Male"),
-    name = "Sex"
+    labels = c("Women", "Both", "Men"),
+    name = "Gender"
   ) +
   scale_x_continuous(breaks = seq(2000, 2023, 1)) +
   facet_grid2(
@@ -493,10 +492,9 @@ combined_plot <- ggplot() +
     legend.title = element_text(face = "bold")
   )
 path_out <-
-  here::here("outputs/Paper 2026/survey and program graph")
+  here::here("outputs/Paper 2026/AHD/survey and program graph")
 
 combined_plot
-stop()
 ggsave(
   plot = combined_plot,
   file = paste0(path_out, "/paper_survey_data.png"),
@@ -511,3 +509,4 @@ svglite::svglite(fn <- file.path(file = paste0(path_out, "/paper_survey_data.svg
                  width = 8.5, height = 11)
 print(combined_plot)
 dev.off()
+

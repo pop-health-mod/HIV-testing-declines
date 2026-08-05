@@ -1,5 +1,5 @@
-source("anc testing/1.0 simmod.R")
-source("anc testing/1.1 tot test out.R")
+source(here::here("1.0 simmod.R"))
+source(here::here("1.1 tot test out.R"))
 
 # depricated, interest is program data not already assumption driven simulation data
 # CI_cor = matrix(nrow = 37, ncol = 4)
@@ -96,7 +96,7 @@ correlationplot = ggplot(CI_cor_vct, aes(y = country)) +
 
 
 correlationplot
-path_out <- here::here("outputs/Paper 2026/supplemental")
+path_out <- here::here("outputs/Paper 2026/AHD/supplemental")
 
 ggsave(
   plot = correlationplot,
@@ -144,7 +144,7 @@ correlationplot = ggplot(CI_cor_anc, aes(y = country)) +
 
 
 correlationplot
-path_out <- here::here("outputs/Paper 2026/supplemental")
+path_out <- here::here("outputs/Paper 2026/AHD/supplemental")
 
 ggsave(
   plot = correlationplot,
@@ -157,15 +157,14 @@ ggsave(
 
 
 #---- propprtion plots----
+library(Rcpp)
+path_out_data <- "outputs/AHD"
+hivdemo_proj_list <- readRDS("data/hivdemo_proj_dt_cnt.rds")
 
-path_anc <- here::here("anc testing")
-path_out_data <- "outputs"
-hivdemo_proj_list <- readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
-
-pmtct_list <- readRDS(paste0(path_anc, "/data/pmtct_list_cnt.rds"))
+pmtct_list <- readRDS("data/pmtct_list_cnt.rds")
 
 # long simulation, set rerun_init to T if this is the first time with a new simulation
-rerun_init = F
+rerun_init = T
 if (rerun_init) {
   anc_prop = data.frame(year = 2005:2030, value = NA)
   simul_vec_anc_prop = array(0, dim = c(31, 3000, 39))
@@ -303,7 +302,7 @@ prop_anc_plot = ggplot() +
 
 ggsave(
   plot = prop_anc_plot,
-  file = paste0(path_out, "/prop_anc 1 21.png"),
+  file = paste0(path_out, "/prop_anc.png"),
   width = 12,
   height = 8.5,
   dpi = 500,
@@ -313,6 +312,10 @@ ggsave(
 
 #---- proportion pooled ----
 # match weighting to status awareness
+
+aware_agg_simul_femalefull <-
+  readRDS(file = paste0(here::here("outputs/AHD"),
+                        "/female aware.rda"))
 # samp is identical so can utilize already calculated weights from unaware
 library(data.table)
 weighted_prop = list()
@@ -377,7 +380,7 @@ weighted_ANC_prop_CrI <- weighted_ANC_prop[, .(
 
 setorder(weighted_ANC_prop_CrI, year)
 
-
+1 - weighted_ANC_prop_CrI
 anc_pooled_prop = ggplot(weighted_ANC_prop_CrI) +
   geom_ribbon(
     mapping = aes(

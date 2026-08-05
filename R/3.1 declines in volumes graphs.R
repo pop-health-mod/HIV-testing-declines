@@ -1,9 +1,12 @@
-path_out <- here::here("outputs/Paper 2026/volume decline/")
+library(first90)
+library(tidyverse)
+library(ggplot2)
+source(here::here("1.1 tot test out.R"))
 
-path_anc <- here::here("anc testing")
-make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final.rds"))
+path_out <- here::here("outputs/Paper 2026/AHD/volume decline/")
 
-source(paste0(path_anc, "/1.1 tot test out.R"))
+make_country = readRDS("outputs/AHD/make_country_simul_final.rds")
+
 
 # ----total tests/anc-nonanc ----
 
@@ -130,6 +133,14 @@ for (j in 1:dim(simul_vec_vct)[1]) {
          apply(simul_vec_vct[19, , , drop = FALSE], 2, sum))
 ))
 
+# find declines #2018(19) for anc max and 2021(22) min
+1 - (quantile(
+  probs =  c(0.025, 0.5, 0.975),
+  x = (apply(simul_vec_anc[22, , , drop = FALSE], 2, sum) /
+         apply(simul_vec_anc[19, , , drop = FALSE], 2, sum))
+))
+
+
 #find declines 2023(24) and max 2018(19)
 1 - (quantile(
   probs =  c(0.025, 0.5, 0.975),
@@ -194,7 +205,7 @@ plot_total_anc_vct = ggplot() +
     axis.text.y = element_text(size = 15),
     legend.position = "none"
   ) +
-  scale_y_continuous(labels = comma,
+  scale_y_continuous(#labels = "comma",
                      breaks = c(0, 15, 30, 45, 60, 75, 90, 105, 120)) +  # does not pick good break points automatically
   scale_x_continuous(breaks = c(2015:2023),
                      limits = c(2015, 2023))  # Formats numbers with commas
@@ -326,7 +337,7 @@ for (j in 1:dim(simul_vec_vct_pos)[1]) {
   CI_ANC[j, 2:3] = quantile(apply(simul_vec_anc_pos[j, , , drop = FALSE], 2, sum), c(0.025, 0.975))
 }
 
-# find decliens #2017(18) for vct max and 2021(22) min
+# find decliens #2018(19) for vct max and 2021(22) min
 1 - (quantile(
   x = (apply(
     simul_vec_vct_pos[22, , , drop = FALSE] -
@@ -394,7 +405,7 @@ plot_pos_anc_vct = ggplot() +
     
   ) +
   scale_y_continuous(
-    labels = comma,
+    #labels = "comma",
     breaks = seq(0, 3000, by = 500) / 1000,
     limits = c(0, max(postests$uci) / 1e6)
   ) +  # Formats numbers with commas
@@ -497,7 +508,7 @@ plot_positvity_anc_vct = ggplot() +
   ) +
   #geom_vline(xintercept = 2018,linetype = "dotted",size = 0.7)+
   scale_y_continuous(
-    labels = comma,
+    #labels = "comma",
     breaks = seq(0, 6, by = 1),
     limits = c(0, max(positivitytests$uci[positivitytests$Year >= 2015]) * 100)
   ) +  # Formats numbers with commas
@@ -689,7 +700,6 @@ geo_anctestvalue[dim(geo_anctestvalue)[1], ] <-
     return(round(1 - minvec / maxvec, 2))
     
   })
-
 
 # set no-decline to NA
 geo_anctestvalue[11, ] <-
@@ -1368,3 +1378,4 @@ ggsave(
   height = 7,
   dpi = 700
 )
+

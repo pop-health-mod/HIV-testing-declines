@@ -12,18 +12,17 @@ knitr::opts_chunk$set(echo = TRUE,dpi = 500)
 ```
 
 ```{r load, include=FALSE}
-path_anc <- here::here("anc testing")
-path_out <- here::here("outputs")
-make_country <- readRDS(file = "anc testing/data/make_country_simul_final.rds")
+path_out <- here::here("outputs/AHD")
+make_country <- readRDS(file = "outputs/AHD/make_country_simul_final.rds")
 
-hivdemo_proj_list <- readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
+hivdemo_proj_list <- readRDS(here::here("data/hivdemo_proj_dt_cnt.rds"))
    
-pmtct_list <- readRDS(paste0(path_anc, "/data/pmtct_list_cnt.rds"))
+pmtct_list <- readRDS(here::here("data/pmtct_list_cnt.rds"))
 
-source(paste0(path_anc, "/1.0 simmod.R"))
-source(paste0(path_anc, "/1.1 tot test out.R"))
-source(paste0(path_anc, "/0.6 time dx functions.R"))
-source(paste0(path_anc, "/0.5 simul-aware-functions.R"))
+source(here::here("1.0 simmod.R"))
+source(here::here("1.1 tot test out.R"))
+source(here::here("0.6 time dx functions.R"))
+source(here::here("0.5 simul-aware-functions.R"))
 library(Rcpp)
 library(Matrix)
 library(first90)

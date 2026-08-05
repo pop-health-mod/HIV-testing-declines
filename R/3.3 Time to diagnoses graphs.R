@@ -1,18 +1,42 @@
-source("anc testing/0.6 time dx functions.R")
-source("anc testing/1.1 tot test out.R")
-source("anc testing/1.0 simmod.R")
-path_out <- here::here("outputs/paper 2026/TDX")
-counter_years <-  read_rds("anc testing/data/counter_years.rds")
+source(here::here("0.4 functions.R"))
+source(here::here("0.6 time dx functions.R"))
+source(here::here("1.1 tot test out.R"))
+source(here::here("1.0 simmod.R"))
+library(sf)
+# update file path
+path_out <- here::here("outputs/paper 2026/AHD/TDX")
+counter_years <-  read_rds("data/counter_years.rds")
+make_country = readRDS("outputs/AHD/make_country_simul_final.rds")
+
+out_dir <- here::here("outputs/AHD")
+
+rd <- function(tag) {
+  f <- file.path(out_dir, paste0(tag, ".rda"))
+  if (file.exists(f))
+    readRDS(f)
+  else
+    list()
+}
 
 tdx_agg_simul_male_diff = list()
 tdx_agg_simul_female_diff = list()
-simul_tdxM = readRDS("outputs/male tdx observed.rda")
-simul_tdxF = readRDS("outputs/female tdx observed.rda")
-simul_tdxB = readRDS("outputs/both tdx observed.rda")
 
-simul_tdxMcount = readRDS("outputs/male tdx counter.rda")
-simul_tdxFcount = readRDS("outputs/female tdx counter.rda")
-simul_tdxBcount = readRDS("outputs/both tdx counter.rda")
+## ---- factual ----
+simul_tdxB_unpool <- rd("both time to dx all 1")
+
+## ---- counterfactual ----
+simul_tdxB_unpool_counter <- rd("both time to dx counter 1")
+
+# extract pooled estimats for both
+simul_tdxB   <- extract_pooled(simul_tdxB_unpool)
+simul_tdxBcount   <- extract_pooled(simul_tdxB_unpool_counter)
+
+simul_tdxM <- pool_age_groups(simul_tdxB_unpool,sex_grps = "male")
+simul_tdxF <- pool_age_groups(simul_tdxB_unpool,sex_grps = "female")
+
+simul_tdxMcount <- pool_age_groups(simul_tdxB_unpool_counter,sex_grps = "male")
+simul_tdxFcount <- pool_age_groups(simul_tdxB_unpool_counter,sex_grps = "female")
+
 
 tdx_agg_simul_male = simul_tdxM
 tdx_agg_simul_female = simul_tdxF
@@ -66,6 +90,9 @@ tdx_agg_simul_female_diff = list()
 tdx_agg_simul_both_diff = list()
 tdx_agg_simul_diff_diff = list()
 tdx_agg_simul_diff_diff_obs = list()
+tdx_agg_simul_male_percent_diff = list()
+tdx_agg_simul_female_percent_diff = list()
+
 for (i in 1:length(tdx_agg_simul_male)) {
   cnt = names(tdx_agg_simul_male)[i]
   print(cnt)
@@ -81,27 +108,37 @@ for (i in 1:length(tdx_agg_simul_male)) {
         diff_diff = subset(simul_tdxB[[cnt]]$out_simul_tdx_all, year %in% yearsim)
         diff_diff_obs = subset(simul_tdxB[[cnt]]$out_simul_tdx_all, year %in% yearsim)
         
+        per_diff_men = subset(simul_tdxM[[cnt]]$out_simul_tdx_all, year %in% yearsim)
+        per_diff_women = subset(simul_tdxF[[cnt]]$out_simul_tdx_all, year %in% yearsim)
         
         
         diff_men$time_dx_med = (
           subset(simul_tdxM[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5] - subset(simul_tdxMcount[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5]
-        )$time_dx_med
+        )
         diff_women$time_dx_med = (
           subset(simul_tdxF[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5] - subset(simul_tdxFcount[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5]
-        )$time_dx_med
+        )
         diff_both$time_dx_med = (
           subset(simul_tdxB[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5] - subset(simul_tdxBcount[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5]
-        )$time_dx_med
+        )
         
         diff_diff$time_dx_med = (
-          subset(simul_tdxMcount[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5]$time_dx_med -
+          subset(simul_tdxMcount[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5] -
             subset(simul_tdxFcount[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5]
-        )$time_dx_med
+        )
         
         diff_diff_obs$time_dx_med = (
-          subset(simul_tdxM[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5]$time_dx_med -
+          subset(simul_tdxM[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5] -
             subset(simul_tdxF[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5]
-        )$time_dx_med
+        )
+        
+        per_diff_men$time_dx_med = (
+          subset(simul_tdxM[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5]/ subset(simul_tdxMcount[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5]
+        ) * 100 - 100
+        per_diff_women$time_dx_med = (
+          subset(simul_tdxF[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5]/ subset(simul_tdxFcount[[cnt]]$out_simul_tdx_all, year %in% yearsim)[, 5]
+        ) * 100 - 100
+        
         
         quantile(diff_women$time_dx_med, c(0.95, 0.5, 0.05))
         
@@ -114,6 +151,9 @@ for (i in 1:length(tdx_agg_simul_male)) {
         
         tdx_agg_simul_diff_diff[[cnt]]$out_simul_tdx_all = diff_diff
         tdx_agg_simul_diff_diff_obs[[cnt]]$out_simul_tdx_all = diff_diff_obs
+        
+        tdx_agg_simul_male_percent_diff[[cnt]]$out_simul_tdx_all = per_diff_men
+        tdx_agg_simul_female_percent_diff[[cnt]]$out_simul_tdx_all = per_diff_women
         
         
       },
@@ -160,6 +200,8 @@ both_agg_diff = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_both_diff, sex = "ma
 diff_agg_diff = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_diff_diff, sex = "male+female")
 diff_agg_diff_obs = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_diff_diff_obs, sex = "male+female")
 
+male_agg_per = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_male_percent_diff, sex = "male")
+female_agg_per = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_female_percent_diff, sex = "female")
 
 pepfarM = Agg_simul_pool_time_dx_prev_2(pepfar_male_ttd, sex = "male")
 pepfarF = Agg_simul_pool_time_dx_prev_2(pepfar_female_ttd, sex = "female")
@@ -194,8 +236,6 @@ both_agg_counter = Agg_simul_pool_time_dx_prev_2(tdx_agg_simul_both_counter, sex
 both_no_decline_agg = Agg_simul_pool_time_dx_prev_2(simul_tdxB, sex = "male+female")
 
 male_agg$time_dx - female_agg$time_dx
-
-male_agg = Agg_simul_pool_time_dx_prev(tdx_agg_simul_female_subset$`South Africa`$out_simul_tdx_all, sex = "female")
 
 
 # ----plot male_female ttd----
@@ -303,7 +343,7 @@ plot = ggplot() +
   labs(
     title = paste0(
       "Pooled Median Time to Diagnosis or AIDS\nDeath ",
-      "by Sex in Countries With a Decline:\n",
+      "by Gender in Countries With\n a Decline: ",
       start_year,
       "-",
       end_year
@@ -352,10 +392,163 @@ ggsave(
   scale = 1
 )
 
+plot = ggplot() +
+  geom_ribbon(
+    data = get(var_name),
+    aes(
+      x = year,
+      ymin = time_dx_lci,
+      ymax = time_dx_uci,
+      group = 1
+    ),
+    fill = col,
+    alpha = ifelse(sex == "female", 0.2, 0.3)
+  ) +
+  geom_line(
+    data = get(var_name),
+    aes(y = time_dx, x = year),
+    color = col,
+    linewidth = 1
+  ) +
+  geom_ribbon(
+    data = get(var_name2),
+    aes(
+      x = year,
+      ymin = time_dx_lci,
+      ymax = time_dx_uci,
+      group = 1
+    ),
+    fill = col,
+    alpha = 0.2
+  ) +
+  geom_line(
+    data = get(var_name2),
+    aes(y = time_dx, x = year),
+    color = col,
+    linewidth = 1,
+    linetype = 2
+  ) +
+  
+  
+  geom_ribbon(
+    data = get(var_namea),
+    aes(
+      x = year,
+      ymin = time_dx_lci,
+      ymax = time_dx_uci,
+      group = 1
+    ),
+    fill = col2,
+    alpha = ifelse(sex == "female", 0.2, 0.3)
+  ) +
+  geom_line(
+    data = get(var_namea),
+    aes(y = time_dx, x = year),
+    color = col2,
+    linewidth = 1
+  ) +
+  geom_ribbon(
+    data = get(var_namea2),
+    aes(
+      x = year,
+      ymin = time_dx_lci,
+      ymax = time_dx_uci,
+      group = 1
+    ),
+    fill = col2,
+    alpha = 0.2
+  ) +
+  geom_line(
+    data = get(var_namea2),
+    aes(y = time_dx, x = year),
+    color = col2,
+    linewidth = 1,
+    linetype = 2
+  ) +
+  theme_minimal() +
+  labs(
+    title = paste0(
+      "Pooled Median Time to Diagnosis or AIDS\nDeath ",
+      "by Gender in Countries With\n a Decline: ",
+      start_year,
+      "-",
+      end_year
+    ),
+    x = NULL,
+    y = "Years to Diagnosis or AIDS Death"
+  ) +
+  scale_x_continuous(breaks = seq(start_year, end_year, 1),
+                     limits = c(start_year, 2023)) +
+  scale_y_continuous(limits = c(0, 4)) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    # Center the title,
+    axis.title.x = element_text(size = 15),
+    axis.title.y = element_text(size = 15),
+    axis.text.x = element_text(
+      size = 15,
+      angle = 45,
+      vjust = 1,
+      hjust = 1
+    ),
+    axis.text.y = element_text(size = 15),
+    legend.position = "bottom"
+    
+  )
+plot
+
+ggsave(
+  plot = plot,
+  file = paste0(path_out, "/_tdx_paper male_female.png"),
+  width = 5,
+  height = 5,
+  dpi = 500,
+  scale = 1
+)
 
 
+library(ggplot2)
+library(grid)
 
+## match your panel colours (swap in whatever col / col2 are)
+sex_cols <- c("Women" = col, "Men" = col2)
 
+## minimal data purely to generate the two guides
+leg_df <- data.frame(
+  x        = 1:2, y = 1:2,
+  Gender      = factor(c("Women", "Men"), levels = c("Women", "Men")),
+  Scenario = factor(c("Observed", "Counterfactual"),
+                    levels = c("Counterfactual", "Observed"))
+)
+
+plot <- ggplot(leg_df, aes(x, y)) +
+  geom_ribbon(aes(ymin = y - 1, ymax = y + 1, fill = Gender), alpha = 0.5) +   # filled-box keys
+  geom_line(aes(linetype = Scenario), linewidth = 1, colour = "grey20") +   # line keys
+  scale_fill_manual(values = sex_cols) +
+  scale_linetype_manual(values = c("Counterfactual" = 2, "Observed" = 1)) +
+  guides(
+    fill     = guide_legend(order = 1, override.aes = list(alpha = 0.6)),
+    linetype = guide_legend(order = 2, override.aes = list(fill = NA, colour = "grey20"))
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position  = "bottom",
+    legend.box       = "horizontal",
+    legend.direction = "horizontal",
+    legend.title     = element_text(face = "plain"),
+    legend.spacing.x = unit(6, "pt")
+  )
+
+plot 
+
+ggsave(
+  plot = plot,
+  file = paste0(path_out, "/_tdx_paper figure legend.png"),
+  width = 8,
+  height = 2,
+  dpi = 500,
+  scale = 1
+)
 
 
 # ----map both----
@@ -564,6 +757,10 @@ for (j in 1:length(geo_ttd_both$year)) {
         # Center the title
         size = 18           # Adjust the font size
       ),
+      plot.background = element_rect(fill = "transparent", color = NA),
+      panel.background = element_rect(fill = "transparent", color = NA),
+      legend.background = element_rect(fill = "transparent", color = NA),
+      legend.box.background = element_rect(fill = "transparent", color = NA),
       #legend.key = element_rect(size = 0.1),
       #legend.key.size = c(2,2)
       
@@ -582,6 +779,7 @@ for (j in 1:length(geo_ttd_both$year)) {
       year1,
       " .png"
     ),
+    bg = "transparent",
     width = 5.5,
     height = 6.2,
     dpi = 700
@@ -804,7 +1002,7 @@ plot = ggplot() +
   labs(
     title = paste0(
       "Additional Years to Diagnosis or AIDS\n ",
-      "Death by Sex in Countries With a Decline:\n",
+      "Death by Gender in Countries With a Decline:\n",
       start_year,
       "-",
       end_year
@@ -842,6 +1040,113 @@ ggsave(
   dpi = 500,
   scale = 1
 )
+
+
+# ---- legend ----
+
+# ----plot female diff ttd----
+start_year = 2015
+male_colour = "steelblue"
+female_colour = "firebrick"
+end_year = 2023
+
+# Define sex setting
+sex <- "female"  # Options: "male", "female", "both"
+
+if (sex == "female") {
+  col = "firebrick3"
+  col2 = "steelblue"
+  sex2 = "male"
+} else{
+  col = "steelblue"
+  col2 = "firebrick3"
+  sex2 = "female"
+}
+
+# Dynamically construct the variable name
+var_name <- paste0(sex, "_agg_diff")
+
+var_namea = paste0(sex2, "_agg_diff")
+
+plot = ggplot() +
+  geom_ribbon(
+    data = get(var_name),
+    aes(
+      x = year,
+      ymin = time_dx_lci,
+      ymax = time_dx_uci,
+      group = 1
+    ),
+    fill = col,
+    alpha = ifelse(sex == "female", 0.2, 0.3)
+  ) +
+  geom_line(
+    data = get(var_name),
+    aes(y = time_dx, x = year),
+    color = col,
+    linewidth = 1
+  ) +
+  
+  geom_ribbon(
+    data = get(var_namea),
+    aes(
+      x = year,
+      ymin = time_dx_lci,
+      ymax = time_dx_uci,
+      group = 1
+    ),
+    fill = col2,
+    alpha = ifelse(sex == "female", 0.2, 0.3)
+  ) +
+  geom_line(
+    data = get(var_namea),
+    aes(y = time_dx, x = year),
+    color = col2,
+    linewidth = 1
+  ) +
+  theme_minimal() +
+  labs(
+    title = paste0(
+      "Additional Years to Diagnosis or AIDS\n ",
+      "Death by Gender in Countries With\na Decline: ",
+      start_year,
+      "-",
+      end_year
+    ),
+    x = NULL,
+    y = "Years to Diagnosis or AIDS Death"
+  ) +
+  scale_x_continuous(breaks = seq(start_year, end_year, 1),
+                     limits = c(start_year, 2023)) +
+  scale_y_continuous(limits = c(-0.1, 1.01)) +
+  
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    # Center the title,
+    axis.title.x = element_text(size = 15),
+    axis.title.y = element_text(size = 15),
+    axis.text.x = element_text(
+      size = 15,
+      angle = 45,
+      vjust = 1,
+      hjust = 1
+    ),
+    axis.text.y = element_text(size = 15),
+    
+    
+  )
+plot
+
+
+ggsave(
+  plot = plot,
+  file = paste0(path_out, "/_tdx_paper male_female diff.png"),
+  width = 5,
+  height = 5,
+  dpi = 500,
+  scale = 1
+)
+
 
 #---- pepfar ----
 
@@ -959,7 +1264,7 @@ plot1 = ggplot(data, aes(x = Country, y = CentralEstimate)) +
     yend = 1.35
   ), size = 0.5) + # Line for PEPFAR
   scale_y_continuous(limits = c(0, 1.40)) +
-  scale_x_discrete(labels = c("Females", "Males", "Females", "Males")) +
+  scale_x_discrete(labels = c("Women", "Men", "Women", "Men")) +
   theme(
     plot.caption = element_text(size = 10, hjust = 0),
     plot.title = element_text(size = 16, hjust = 0.6, face = "bold"),
@@ -992,13 +1297,6 @@ ggsave(
   width = 5,
   scale = 1
 )
-
-pepfar_male_ttd$`South Africa`
-
-male_agg_counter$time_dx - female_agg_counter$time_dx
-
-
-
 
 
 
@@ -1107,8 +1405,8 @@ plot = ggplot() +
   theme_minimal() +
   labs(
     title = paste0(
-      "Pooled Median Time to Diagnosis or AIDS Death\n ",
-      "by Gender in Countries With a Decline: ",
+      "Pooled Median Time to Diagnosis\nor AIDS Death ",
+      "by Gender in\nCountries With a Decline: ",
       start_year,
       "-",
       end_year
@@ -1473,3 +1771,4 @@ ggsave(
   dpi = 500,
   scale = 1
 )
+

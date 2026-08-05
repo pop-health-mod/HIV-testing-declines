@@ -1,18 +1,16 @@
-source(paste0(here::here("anc testing"), "/0.6 time dx functions.R"))
-source(paste0(here::here("anc testing"), "/0.5 simul-aware-functions.R"))
+source(here::here("0.6 time dx functions.R"))
+source(here::here("0.5 simul-aware-functions.R"))
 
-counter_year <- read_rds("anc testing/data/counter_years.rds")
-counter_anc_years <- read_rds("anc testing/data/counter_anc_years.rds")
+counter_years <- read_rds("data/counter_years.rds")
+counter_anc_years <- read_rds("data/counter_anc_years.rds")
 
-path_anc <- here::here("anc testing")
-make_country = readRDS(paste0(path_anc, "/data/make_country_simul_final.rds"))
+make_country = readRDS("data/make_country_simul_final.rds")
 
 # extract the PMTCT information from the Spectrum files
-pmtct_list <- readRDS(paste0(path_anc, "/data/pmtct_list_cnt.rds"))
+pmtct_list <- readRDS("data/pmtct_list_cnt.rds")
 
 # extract the HIV/demographic projections
-hivdemo_proj_list <-
-  readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
+hivdemo_proj_list <- readRDS("data/hivdemo_proj_dt_cnt.rds")
 
 
 #define time to diagnoses lists
@@ -34,7 +32,7 @@ aware_agg_simul_both_counter = list()
 
 # select countries to use, for chad it must be run with new parameters (see 2.0 simulating Shiny90)
 cntlist = names(make_country)[c(-6)]
-
+i = 26
 for (i in 1:length(make_country)) {
   cnt = names(make_country)[i]
   print(cnt)
@@ -116,9 +114,7 @@ for (i in 1:length(make_country)) {
             start_dx     <- convert + (start - 40)
             end_dx       <- start_dx + (end - start_female)
             
-            clamp <-
-              function(i)
-                max(1, min(ncol(samp), as.integer(i)))
+            clamp <- function(i) max(1, min(ncol(samp), as.integer(i)))
             
             sf <- clamp(start_female)
             e1 <- clamp(min(end, convert))
@@ -127,10 +123,8 @@ for (i in 1:length(make_country)) {
             e2 <- clamp(min(end_dx, convert + convert - 10))
             
             # apply to all rows
-            if (sf <= e1)
-              samp[, sf:e1] <- samp[, sf]
-            if (sd <= e2)
-              samp[, sd:e2] <- samp[, sd]
+            if (sf <= e1) samp[, sf:e1] <- samp[, sf]
+            if (sd <= e2) samp[, sd:e2] <- samp[, sd]
             
             samp
           }
@@ -140,6 +134,7 @@ for (i in 1:length(make_country)) {
             print("non-counter samp")
             samp_1 = samp
           }
+          
           if (is.na(counter_years_loop$start) &
               is.na(counter_years[counter_years$country == cnt, 1:3]$start)) {
             print("skipping")
@@ -171,8 +166,7 @@ for (i in 1:length(make_country)) {
                       pmtct$anc_test[2, ] == 0))  # Faster than repeated indexing
           
           # anc tested and tested anc pos
-          anc_tested <-
-            as.integer(colSums(pmtct$anc_test[c(2, 5), valid_cols], na.rm = T))
+          anc_tested <- as.integer(colSums(pmtct$anc_test[c(2, 5), valid_cols], na.rm = T))
           anc_pos <- as.integer(pmtct$anc_test[3, valid_cols])
           
           # Extract birth indices
@@ -214,74 +208,73 @@ for (i in 1:length(make_country)) {
             # adjust anctest
             pmtct_1$anc_test[, Years_anc] = pmtct$anc_test[, which(names(pmtct$anc_test) == year_start)]
             # if needed adjust recive/need pmtct, all countries should have anctest but just incase one year is missing.
-            pmtct_1$receivepmtct[which(names(pmtct$anc_test) == Years_anc)] = pmtct$receivepmtct[which(names(pmtct$anc_test) == year_start)]
-            pmtct_1$needpmtct[which(names(pmtct$anc_test) == Years_anc)] = pmtct$needpmtct[which(names(pmtct$anc_test) == year_start)]
+            pmtct_1$receivepmtct[names(pmtct_1$receivepmtct) %in% Years_anc] = pmtct$receivepmtct[names(pmtct_1$receivepmtct) %in% Years_anc]
+            pmtct_1$needpmtct[names(pmtct_1$needpmtct) %in% Years_anc] = pmtct$needpmtct[names(pmtct_1$needpmtct) %in% Years_anc]
           }
         }
         
-        
-        # # time to diagnosis
-        # simul_tdxF = simul_pool_time_dx_agg_prev(
-        #   samp = samp,
-        #   mod = make_country[[cnt]]$mod,
-        #   fp = make_country[[cnt]]$fp,
-        #   hivdemo_proj = hivdemo_proj_list[[cnt]],
-        #   pmtct = pmtct_list[[cnt]],
-        #   year = 2015:2023,
-        #   std = F,
-        #   age = c("15-24", "25-34", "35-49", "50-99"),
-        #   sex = "female",
-        #   parallel = T
-        # )
-        # print(1)
-        # simul_tdxM = simul_pool_time_dx_agg_prev(
-        #   samp = samp,
-        #   mod = make_country[[cnt]]$mod,
-        #   fp = make_country[[cnt]]$fp,
-        #   hivdemo_proj = hivdemo_proj_list[[cnt]],
-        #   pmtct = pmtct_list[[cnt]],
-        #   year = 2015:2023,
-        #   std = F,
-        #   age = c("15-24", "25-34", "35-49", "50-99"),
-        #   sex = "male",
-        #   parallel = T
-        # )
-        # 
-        # print(2)
-        # 
-        # simul_tdxB = simul_pool_time_dx_agg_prev(
-        #   samp = samp,
-        #   mod = make_country[[cnt]]$mod,
-        #   fp = make_country[[cnt]]$fp,
-        #   hivdemo_proj = hivdemo_proj_list[[cnt]],
-        #   pmtct = pmtct_list[[cnt]],
-        #   year = 2015:2023,
-        #   std = F,
-        #   age = c("15-24", "25-34", "35-49", "50-99"),
-        #   sex = c("male", "female"),
-        #   parallel = T
-        # )
-        # print(3)
-        # 
-        # tdx_agg_simul_male[[cnt]]$out_simul_tdx_all = simul_tdxM
-        # tdx_agg_simul_female[[cnt]]$out_simul_tdx_all = simul_tdxF
-        # tdx_agg_simul_both[[cnt]]$out_simul_tdx_all = simul_tdxB
-        # 
-        # make_country[[cnt]]$tdx_male$out_simul_tdx_all = simul_tdxM
-        # make_country[[cnt]]$tdx_female$out_simul_tdx_all = simul_tdxF
-        # make_country[[cnt]]$tdx_both$out_simul_tdx_all = simul_tdxB
-        # 
-        # saveRDS(tdx_agg_simul_male,
-        #         paste0(here::here("outputs"),
-        #                "/male time to dx.rda"))
-        # saveRDS(tdx_agg_simul_female,
-        #         paste0(here::here("outputs"),
-        #                "/female time to dx.rda"))
-        # saveRDS(tdx_agg_simul_both,
-        #         paste0(here::here("outputs"),
-        #                "/both time to dx.rda"))
-        # gc()
-        # 
+        # time to diagnosis
+        simul_tdxF = simul_pool_time_dx_agg_prev(
+          samp = samp,
+          mod = make_country[[cnt]]$mod,
+          fp = make_country[[cnt]]$fp,
+          hivdemo_proj = hivdemo_proj_list[[cnt]],
+          pmtct = pmtct_list[[cnt]],
+          year = 2015:2023,
+          std = F,
+          age = c("15-24", "25-34", "35-49", "50-99"),
+          sex = "female",
+          parallel = T
+        )
+        print(1)
+        simul_tdxM = simul_pool_time_dx_agg_prev(
+          samp = samp,
+          mod = make_country[[cnt]]$mod,
+          fp = make_country[[cnt]]$fp,
+          hivdemo_proj = hivdemo_proj_list[[cnt]],
+          pmtct = pmtct_list[[cnt]],
+          year = 2015:2023,
+          std = F,
+          age = c("15-24", "25-34", "35-49", "50-99"),
+          sex = "male",
+          parallel = T
+        )
+
+        print(2)
+
+        simul_tdxB = simul_pool_time_dx_agg_prev(
+          samp = samp,
+          mod = make_country[[cnt]]$mod,
+          fp = make_country[[cnt]]$fp,
+          hivdemo_proj = hivdemo_proj_list[[cnt]],
+          pmtct = pmtct_list[[cnt]],
+          year = 2015:2023,
+          std = F,
+          age = c("15-24", "25-34", "35-49", "50-99"),
+          sex = c("male", "female"),
+          parallel = T
+        )
+        print(3)
+
+        tdx_agg_simul_male[[cnt]]$out_simul_tdx_all = simul_tdxM
+        tdx_agg_simul_female[[cnt]]$out_simul_tdx_all = simul_tdxF
+        tdx_agg_simul_both[[cnt]]$out_simul_tdx_all = simul_tdxB
+
+        make_country[[cnt]]$tdx_male$out_simul_tdx_all = simul_tdxM
+        make_country[[cnt]]$tdx_female$out_simul_tdx_all = simul_tdxF
+        make_country[[cnt]]$tdx_both$out_simul_tdx_all = simul_tdxB
+
+        saveRDS(tdx_agg_simul_male,
+                paste0(here::here("outputs"),
+                       "/male time to dx.rda"))
+        saveRDS(tdx_agg_simul_female,
+                paste0(here::here("outputs"),
+                       "/female time to dx.rda"))
+        saveRDS(tdx_agg_simul_both,
+                paste0(here::here("outputs"),
+                       "/both time to dx.rda"))
+        gc()
+
         # counterfactual time to diagnosis
         if (!(is.null(samp_1))) {
           simul_tdxF_counter = simul_pool_time_dx_agg_prev(
@@ -616,5 +609,5 @@ saveRDS(tdx_agg_simul_both,
 # make_country save
 saveRDS(
   object = make_country,
-  file = here::here('anc testing/data/make_country_simul_final.rds')
+  file = here::here('data/make_country_simul_final.rds')
 )

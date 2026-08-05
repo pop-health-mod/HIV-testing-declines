@@ -38,7 +38,7 @@ simmod_anc_t <- function(fp, anc_true = TRUE, VERSION = "C") {
       ## 1: calendar year (>= Spectrum 5.2)
       fp$projection_period_int <- match(fp$projection_period, c("midyear", "calendar")) - 1L # -1 for 0-based indexing
       
-      sourceCpp(paste0(here::here(src), "/eppasmancretestC.cpp"))
+      sourceCpp(paste0(here::here("src"), "/eppasmancretestC.cpp"))
       
       mod <- eppasmancC(fp)
       attr(mod, "hivtests") <- attr(mod,"vcttests") + attr(mod,"anctests")
@@ -941,6 +941,10 @@ create_anc_param <- function(theta, fp, pmtct, hivdemo_proj, subvar = list(), ve
       2023
     } else if (length(theta) == 54) {
       2024
+    } else if (length(theta) == 56) {
+      2025
+    } else if (length(theta) == 58) {
+      2026
     } else {
       stop("Unexpected length of parameter vector.")
     }
@@ -1558,7 +1562,6 @@ ll_prgdat_anc <- function (mod, fp, dat,verboise = F) {
     return(llk)
   }
   
-  
   lprior_anc <- function(theta, mod, fp) {
     ## Penalty to smooth testing rates among females aged 15-24 (reference group)
     ## We calculate penalty for RR of males on the log(rate) scale (and use same SD as for females)
@@ -1576,6 +1579,10 @@ ll_prgdat_anc <- function (mod, fp, dat,verboise = F) {
       2023
     } else if (length(theta) == 54) {
       2024
+    } else if (length(theta) == 56) {
+      2025
+    } else if (length(theta) == 58) {
+      2026
     } else {
       stop("Unexpected length of parameter vector.")
     }

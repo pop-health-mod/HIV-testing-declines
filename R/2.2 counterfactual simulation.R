@@ -1,6 +1,6 @@
 
-source("anc testing/1.0 simmod.R")
-source("anc testing/1.1 tot test out.R")
+source(here::here("1.0 simmod.R"))
+source(here::here("1.1 tot test out.R"))
 
 counter_year <- read_rds("anc testing/data/counter_years.rds")
 counter_anc_years <- read_rds("anc testing/data/counter_anc_years.rds")
@@ -169,10 +169,10 @@ for (country in make_country) {
           
           if(length(Years_anc)>0 ){
             # adjust anctest
-            pmtct_1$anc_test[, Years_anc] = pmtct$anc_test[, year_start]
+            pmtct_1$anc_test[, Years_anc] = pmtct$anc_test[, which(names(pmtct$anc_test) == year_start)]
             # if needed adjust recive/need pmtct, all countries should have anctest but just incase one year is missing.
-            pmtct_1$receivepmtct[Years_anc] = pmtct$receivepmtct[year_start]
-            pmtct_1$needpmtct[Years_anc] = pmtct$needpmtct[year_start]
+            pmtct_1$receivepmtct[names(pmtct_1$receivepmtct) %in% Years_anc] = pmtct$receivepmtct[names(pmtct_1$receivepmtct) %in% Years_anc]
+            pmtct_1$needpmtct[names(pmtct_1$needpmtct) %in% Years_anc] = pmtct$needpmtct[names(pmtct_1$needpmtct) %in% Years_anc]
           }
         }
         fp = create_anc_param(opt$par,fp,pmtct,hivdemo_proj)
@@ -188,21 +188,20 @@ for (country in make_country) {
         
         
           # identify credible intervals
-        simul <- simul.run.anc(samp,
-                               fp,
-                               pmtct = pmtct,
-                               hivdemo_proj = hivdemo_proj)
-        
-        make_country[[cnt]]$simul = simul
-        saveRDS(
-          object = simul,
-          file = paste0(here::here('anc testing/data/simul'),'/make_country_simul_final ',cnt,'.rds')
-        )
-        
-        
+        # simul <- simul.run.anc(samp,
+        #                        fp,
+        #                        pmtct = pmtct,
+        #                        hivdemo_proj = hivdemo_proj)
+        # 
+        # make_country[[cnt]]$simul = simul
+        # 
+        # saveRDS(
+        #   object = simul,
+        #   file = paste0(here::here('outputs/AHD/cnt'),'/make_country_simul_final ',cnt,'.rds')
+        # )
         
         #save each version in case of crash
-        saveRDS(object = counter_simul, file = paste0(here::here('anc testing/data/counter_simul'),'/make_country_simul_final ',cnt,'.rds'))
+        saveRDS(object = counter_simul, file = paste0(here::here('outputs/AHD/cnt'),'/make_country_simul_final_counter ',cnt,'.rds'))
         
         
       },
@@ -219,7 +218,7 @@ for (country in make_country) {
   
 }
 
-saveRDS(object = make_country, file = here::here('anc testing/data/make_country_simul_final.rds'))
+saveRDS(object = make_country, file = here::here('outputs/AHD/make_country_simul_final.rds'))
 
 
 

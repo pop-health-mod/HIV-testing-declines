@@ -1,35 +1,34 @@
-
-source("anc testing/0.5 simul-aware-functions.R")
-source("anc testing/1.0 simmod.R")
-path_out <- here::here("outputs/paper 2026/TDX")
-counter_years <-  read_rds("anc testing/data/counter_years.rds")
+library(data.table)
+source(here::here("0.5 simul-aware-functions.R"))
+source(here::here("1.0 simmod.R"))
+counter_years <-  read_rds("data/counter_years.rds")
 
 
 # set output directory
-path_out <- here::here("outputs/Paper 2026/awareness")
-#make_country = readRDS("anc testing/data/make_country_simul_final.rds")
+path_out <- here::here("outputs/Paper 2026/AHD/awareness")
+make_country = readRDS("outputs/AHD/make_country_simul_final.rds")
 
 
 # ----prep for graphs----
 aware_agg_simul_malefull <-
-  readRDS(file = paste0(here::here("outputs"),
-                        "/male aware observed.rda"))
+  readRDS(file = paste0(here::here("outputs/AHD"),
+                        "/male aware.rda"))
 aware_agg_simul_male_counter <-
-  readRDS(file = paste0(here::here("outputs"),
+  readRDS(file = paste0(here::here("outputs/AHD"),
                         "/male aware counter.rda"))
 aware_agg_simul_femalefull <-
-  readRDS(file = paste0(here::here("outputs"),
-                        "/female aware observed.rda"))
+  readRDS(file = paste0(here::here("outputs/AHD"),
+                        "/female aware.rda"))
 aware_agg_simul_female_counter <-
-  readRDS(file = paste0(here::here("outputs"),
+  readRDS(file = paste0(here::here("outputs/AHD"),
                         "/female aware counter.rda"))
 aware_agg_simul_bothfull <-
-  readRDS(file = paste0(here::here("outputs"),
-                        "/both aware observed.rda"))
+  readRDS(file = paste0(here::here("outputs/AHD"),
+                        "/both aware.rda"))
 aware_agg_simul_both_counter <-
-  readRDS(file = paste0(here::here("outputs"),
+  readRDS(file = paste0(here::here("outputs/AHD"),
                         "/both aware counter.rda"))
-
+#
 # aware_agg_simul_male = aware_agg_simul_malefull
 # aware_agg_simul_female = aware_agg_simul_femalefull
 # aware_agg_simul_both = aware_agg_simul_bothfull
@@ -139,7 +138,7 @@ aggpooledBothfull = Agg_simul_aware(
   sex = "both"
 )
 
-  # ----prop aware male----
+# ----prop aware male----
 
 
 sex = "Male"
@@ -214,7 +213,7 @@ plot = ggplot() +
       end_year
     ),
     x = NULL,
-    y = "Proportion PLHIV aware"
+    y = "Proportion PLHIV Aware"
   ) +
   scale_x_continuous(breaks = seq(start_year, end_year, 1),
                      limits = c(start_year, 2023)) +
@@ -323,7 +322,7 @@ plot = ggplot() +
       end_year
     ),
     x = NULL,
-    y = "Proportion PLHIV aware"
+    y = "Proportion PLHIV Aware"
   ) +
   scale_x_continuous(breaks = seq(start_year, end_year, 1),
                      limits = c(start_year, 2023)) +
@@ -609,283 +608,289 @@ africa_anc$name[africa_anc$name == "Republic of the Congo"] = "Congo"
 
 
 
-## -----female aware ----
-#this makes a data frame of testing by year for all countries, col 9 is decline in testing
-propaware_tests_female = matrix(nrow = length(aware_agg_simul_diff_Female),
-                                ncol = 10)
-for (i in 1:length(aware_agg_simul_diff_Female)) {
-  cnt = names(aware_agg_simul_diff_Female)[i]
-  print(cnt)
-  PROPAWARE = subset(
-    aware_agg_simul_female[[cnt]]$out_simul_aware_all,
-    age = c("15-99"),
-    year = 2015:2023,
-    sex = "female"
-  )[, quantile(propaware, probs = c(0.5)), by = year][, 2]
-  
-  
-  propaware_tests_female[i, 1:9] = unname(unlist(PROPAWARE))
-  
-}
-propaware_tests_female[, 10] = propaware_tests_female[, 9] - propaware_tests_female[, 1]
-propaware_tests_female = as.data.frame(propaware_tests_female)
-rownames(propaware_tests_female) = names(aware_agg_simul_diff_Female)
-
-dim(propaware_tests_female[propaware_tests_female$V9>0.95,8:9])[1]
-
-#create dataframe with col1 = name of country, col2 = data(decline)
-africa_anc_data <-
-  data.frame(name = names(aware_agg_simul_diff_Female),
-             hiv_decline = propaware_tests_female$V10 * 100)
-
-# Merge with map data
-africa_anc_map <-
-  merge(
-    africa_anc,
-    africa_anc_data,
-    by.x = "name",
-    by.y = "name",
-    all.x = TRUE
-  )
-
-vec_empty = vector()
-
-#find those without data
-for (i in 1:length(make_country)) {
-  if (is.null(make_country[[i]]$simul)) {
-    vec_empty = c(vec_empty, names(make_country)[i])
-  }
-}
-#set countries find countries with data
-black_countries <- names(make_country)
-black_countries = black_countries[!(black_countries %in% vec_empty)]
-
-# Create a new column for color
-africa_anc_map$color <-
-  ifelse(africa_anc_map$name %in% black_countries, "black", NA)
-
-
-#adjust colours on the scale
-africa_anc_map <- africa_anc_map %>%
-  mutate(
-    category = case_when(
-      !(name %in% black_countries) ~ "Selected Countries",
-      #for no data
-      is.na(hiv_decline) ~ "No Data",
-      name %in% names(make_country)[7] ~ "Madagascar",
-      # for no decline
-      TRUE ~ "Gradient"
-    )
-  )
-
-
-plot_africa_aware_female = ggplot() +
-  # Gradient layer for hiv_decline
-  geom_sf(
-    data = africa_anc_map %>% filter(category == "Gradient"),
-    aes(fill = hiv_decline),
-    color = "black"
-  ) +
-  scale_fill_viridis_c(
-    option = "viridis",
-    na.value = "grey80",
-    name = "percent (%) change\nin HIV testing",
-    limits = c(0, 50),
-    direction = 1,
-    #guide = F
-    
-  ) +
-  
-  # New fill scale for categorical values
-  ggnewscale::new_scale_fill() +
-  
-  # Categorical layers (No Data & Selected Countries)
-  geom_sf(
-    data = africa_anc_map %>% filter(category %in% c(
-      "No Data", "Selected Countries", "Madagascar"
-    )),
-    aes(fill = category),
-    # Map fill to category
-    color = "black"
-  ) +
-  scale_fill_manual(
-    name = NULL,
-    values = c(
-      "Selected Countries" = "grey80",
-      "No Data" = "white",
-      "Madagascar" = "black"
-    ),
-    labels = c(
-      "Selected Countries" = "No Data",
-      "No Data" = "No Decline",
-      "Madagascar" = "29% Madagascar"
-    )
-    
-    
-    #guide = F
-  ) +
-  
-  # Theme and labels
-  theme_minimal() +
-  theme(
-    axis.text = element_blank(),
-    axis.ticks = element_blank(),
-    panel.grid = element_blank(),
-    #legend.background = element_blank(),legend.key = element_blank()
-    plot.title = element_text(hjust = 0.5,        # Center the title
-                              face = "bold",      # Make the title bold
-                              size = 12)
-  ) +
-  labs(title = "Percent (%) Change in HIV Testing at \nAntenatalcare (ANC) Testing from 2017 to 2023")
-
-plot_africa_aware_female
-ggsave(
-  plot = plot_africa_aware_female,
-  file = paste0(
-    path_out,
-    "/africa_geograph_ANC female status awareness change from 2023 to 2017.png"
-  ),
-  width = 5,
-  height = 5,
-  dpi = 500,
-  scale = 1
-)
-
-## ----male aware----
-#this makes a data frame of testing by year for all countries, col 9 is decline in testing
-propaware_tests_male = matrix(nrow = length(aware_agg_simul_diff_Male), ncol = 10)
-for (i in 1:length(aware_agg_simul_diff_Male)) {
-  cnt = names(aware_agg_simul_diff_Male)[i]
-  print(cnt)
-  PROPAWARE = subset(
-    aware_agg_simul_male[[cnt]]$out_simul_aware_all,
-    age = c("15-99"),
-    year = 2015:2023,
-    sex = "male"
-  )[, quantile(propaware, probs = c(0.5)), by = year][, 2]
-  
-  
-  propaware_tests_male[i, 1:9] = unname(unlist(PROPAWARE))
-  
-}
-propaware_tests_male[, 10] = propaware_tests_male[, 9] - propaware_tests_male[, 1]
-propaware_tests_male = as.data.frame(propaware_tests_male)
-rownames(propaware_tests_male) = names(aware_agg_simul_diff_Male)
-
-
-#create dataframe with col1 = name of country, col2 = data(decline)
-africa_anc_data <-
-  data.frame(name = names(aware_agg_simul_diff_Male),
-             hiv_decline = propaware_tests_male$V10 * 100)
-# Merge with map data
-africa_anc_map <-
-  merge(
-    africa_anc,
-    africa_anc_data,
-    by.x = "name",
-    by.y = "name",
-    all.x = TRUE
-  )
-
-vec_empty = vector()
-
-#find those without data
-for (i in 1:length(make_country)) {
-  if (is.null(make_country[[i]]$simul)) {
-    vec_empty = c(vec_empty, names(make_country)[i])
-  }
-}
-#set countries find countries with data
-black_countries <-
-  names(make_country)
-black_countries = black_countries[!(black_countries %in% vec_empty)]
-
-# Create a new column for color
-africa_anc_map$color <-
-  ifelse(africa_anc_map$name %in% black_countries, "black", NA)
-
-#adjust colours on the scale
-africa_anc_map <-
-  africa_anc_map %>%
-  mutate(category = case_when(
-    !(name %in% black_countries) ~ "Selected Countries",
-    #for no data
-    is.na(hiv_decline) ~ "No Data",
-    #name %in% names(make_country)[7] ~ "Madagascar",# for no decline
-    TRUE ~ "Gradient"
-  ))
-
-
-
-plot_africa_aware_male = ggplot() +
-  # Gradient layer for hiv_decline
-  geom_sf(
-    data = africa_anc_map %>% filter(category == "Gradient"),
-    aes(fill = hiv_decline),
-    color = "black"
-  ) +
-  scale_fill_viridis_c(
-    option = "viridis",
-    na.value = "grey80",
-    name = "percent (%) change\nin HIV testing",
-    limits = c(0, 50),
-    direction = 1,
-    #guide = F
-    
-  ) +
-  
-  # New fill scale for categorical values
-  ggnewscale::new_scale_fill() +
-  
-  # Categorical layers (No Data & Selected Countries)
-  geom_sf(
-    data = africa_anc_map %>% filter(category %in% c("No Data", "Selected Countries")),
-    aes(fill = category),
-    # Map fill to category
-    color = "black"
-  ) +
-  scale_fill_manual(
-    name = NULL,
-    values = c(
-      "Selected Countries" = "grey80",
-      "No Data" = "white"
-    ),
-    labels = c("Selected Countries" = "No Data",
-               "No Data" = "No Decline")
-    
-    
-  ) +
-  
-  # Theme and labels
-  theme_minimal() +
-  theme(
-    axis.text = element_blank(),
-    axis.ticks = element_blank(),
-    panel.grid = element_blank(),
-    plot.title = element_text(hjust = 0.5,
-                              # Center the title
-                              face = "bold",
-                              # Make the title bold
-                              size = 12)
-  ) +
-  #labs(title = "ANC")
-  labs(title = "Percent (%) Change in HIV Testing at \nAntenatalcare (ANC) Testing from 2017 to 2023")
-
-plot_africa_aware_male
-ggsave(
-  plot = plot_africa_aware_male,
-  file = paste0(
-    path_out,
-    "/africa_geograph_ANC male status awareness change from 2023 to 2017.png"
-  ),
-  width = 5,
-  height = 5,
-  dpi = 500,
-  scale = 1
-)
-
-
-
+# ## -----female aware ----
+# #this makes a data frame of testing by year for all countries, col 9 is decline in testing
+# propaware_tests_female = matrix(nrow = length(aware_agg_simul_diff_Female),
+#                                 ncol = 10)
+# for (i in 1:length(aware_agg_simul_diff_Female)) {
+#   cnt = names(aware_agg_simul_diff_Female)[i]
+#   print(cnt)
+#   PROPAWARE = subset(
+#     aware_agg_simul_female[[cnt]]$out_simul_aware_all,
+#     age = c("15-99"),
+#     year = 2015:2023,
+#     sex = "female"
+#   )[, quantile(propaware, probs = c(0.5)), by = year][, 2]
+#   
+#   
+#   propaware_tests_female[i, 1:9] = unname(unlist(PROPAWARE))
+#   
+# }
+# propaware_tests_female[, 10] = propaware_tests_female[, 9] - propaware_tests_female[, 1]
+# propaware_tests_female = as.data.frame(propaware_tests_female)
+# rownames(propaware_tests_female) = names(aware_agg_simul_diff_Female)
+# 
+# dim(propaware_tests_female[propaware_tests_female$V9>0.95,8:9])[1]
+# 
+# #create dataframe with col1 = name of country, col2 = data(decline)
+# africa_anc_data <-
+#   data.frame(name = names(aware_agg_simul_diff_Female),
+#              hiv_decline = propaware_tests_female$V10 * 100)
+# 
+# # find median
+# africa_anc_data %>% 
+#   filter(hiv_decline>0) %>%
+#   select(hiv_decline) %>% 
+#   median()
+# 
+# # Merge with map data
+# africa_anc_map <-
+#   merge(
+#     africa_anc,
+#     africa_anc_data,
+#     by.x = "name",
+#     by.y = "name",
+#     all.x = TRUE
+#   )
+# 
+# vec_empty = vector()
+# 
+# #find those without data
+# for (i in 1:length(make_country)) {
+#   if (is.null(make_country[[i]]$simul)) {
+#     vec_empty = c(vec_empty, names(make_country)[i])
+#   }
+# }
+# #set countries find countries with data
+# black_countries <- names(make_country)
+# black_countries = black_countries[!(black_countries %in% vec_empty)]
+# 
+# # Create a new column for color
+# africa_anc_map$color <-
+#   ifelse(africa_anc_map$name %in% black_countries, "black", NA)
+# 
+# 
+# #adjust colours on the scale
+# africa_anc_map <- africa_anc_map %>%
+#   mutate(
+#     category = case_when(
+#       !(name %in% black_countries) ~ "Selected Countries",
+#       #for no data
+#       is.na(hiv_decline) ~ "No Data",
+#       name %in% names(make_country)[7] ~ "Madagascar",
+#       # for no decline
+#       TRUE ~ "Gradient"
+#     )
+#   )
+# 
+# 
+# plot_africa_aware_female = ggplot() +
+#   # Gradient layer for hiv_decline
+#   geom_sf(
+#     data = africa_anc_map %>% filter(category == "Gradient"),
+#     aes(fill = hiv_decline),
+#     color = "black"
+#   ) +
+#   scale_fill_viridis_c(
+#     option = "viridis",
+#     na.value = "grey80",
+#     name = "percent (%) change\nin HIV testing",
+#     limits = c(0, 50),
+#     direction = 1,
+#     #guide = F
+#     
+#   ) +
+#   
+#   # New fill scale for categorical values
+#   ggnewscale::new_scale_fill() +
+#   
+#   # Categorical layers (No Data & Selected Countries)
+#   geom_sf(
+#     data = africa_anc_map %>% filter(category %in% c(
+#       "No Data", "Selected Countries", "Madagascar"
+#     )),
+#     aes(fill = category),
+#     # Map fill to category
+#     color = "black"
+#   ) +
+#   scale_fill_manual(
+#     name = NULL,
+#     values = c(
+#       "Selected Countries" = "grey80",
+#       "No Data" = "white",
+#       "Madagascar" = "black"
+#     ),
+#     labels = c(
+#       "Selected Countries" = "No Data",
+#       "No Data" = "No Decline",
+#       "Madagascar" = "29% Madagascar"
+#     )
+#     
+#     
+#     #guide = F
+#   ) +
+#   
+#   # Theme and labels
+#   theme_minimal() +
+#   theme(
+#     axis.text = element_blank(),
+#     axis.ticks = element_blank(),
+#     panel.grid = element_blank(),
+#     #legend.background = element_blank(),legend.key = element_blank()
+#     plot.title = element_text(hjust = 0.5,        # Center the title
+#                               face = "bold",      # Make the title bold
+#                               size = 12)
+#   ) +
+#   labs(title = "Percent (%) Change in HIV Testing at \nAntenatalcare (ANC) Testing from 2017 to 2023")
+# 
+# plot_africa_aware_female
+# ggsave(
+#   plot = plot_africa_aware_female,
+#   file = paste0(
+#     path_out,
+#     "/africa_geograph_ANC female status awareness change from 2023 to 2017.png"
+#   ),
+#   width = 5,
+#   height = 5,
+#   dpi = 500,
+#   scale = 1
+# )
+# 
+# ## ----male aware----
+# #this makes a data frame of testing by year for all countries, col 9 is decline in testing
+# propaware_tests_male = matrix(nrow = length(aware_agg_simul_diff_Male), ncol = 10)
+# for (i in 1:length(aware_agg_simul_diff_Male)) {
+#   cnt = names(aware_agg_simul_diff_Male)[i]
+#   print(cnt)
+#   PROPAWARE = subset(
+#     aware_agg_simul_male[[cnt]]$out_simul_aware_all,
+#     age = c("15-99"),
+#     year = 2015:2023,
+#     sex = "male"
+#   )[, quantile(propaware, probs = c(0.5)), by = year][, 2]
+#   
+#   
+#   propaware_tests_male[i, 1:9] = unname(unlist(PROPAWARE))
+#   
+# }
+# propaware_tests_male[, 10] = propaware_tests_male[, 9] - propaware_tests_male[, 1]
+# propaware_tests_male = as.data.frame(propaware_tests_male)
+# rownames(propaware_tests_male) = names(aware_agg_simul_diff_Male)
+# 
+# 
+# #create dataframe with col1 = name of country, col2 = data(decline)
+# africa_anc_data <-
+#   data.frame(name = names(aware_agg_simul_diff_Male),
+#              hiv_decline = propaware_tests_male$V10 * 100)
+# # Merge with map data
+# africa_anc_map <-
+#   merge(
+#     africa_anc,
+#     africa_anc_data,
+#     by.x = "name",
+#     by.y = "name",
+#     all.x = TRUE
+#   )
+# 
+# vec_empty = vector()
+# 
+# #find those without data
+# for (i in 1:length(make_country)) {
+#   if (is.null(make_country[[i]]$simul)) {
+#     vec_empty = c(vec_empty, names(make_country)[i])
+#   }
+# }
+# #set countries find countries with data
+# black_countries <-
+#   names(make_country)
+# black_countries = black_countries[!(black_countries %in% vec_empty)]
+# 
+# # Create a new column for color
+# africa_anc_map$color <-
+#   ifelse(africa_anc_map$name %in% black_countries, "black", NA)
+# 
+# #adjust colours on the scale
+# africa_anc_map <-
+#   africa_anc_map %>%
+#   mutate(category = case_when(
+#     !(name %in% black_countries) ~ "Selected Countries",
+#     #for no data
+#     is.na(hiv_decline) ~ "No Data",
+#     #name %in% names(make_country)[7] ~ "Madagascar",# for no decline
+#     TRUE ~ "Gradient"
+#   ))
+# 
+# 
+# 
+# plot_africa_aware_male = ggplot() +
+#   # Gradient layer for hiv_decline
+#   geom_sf(
+#     data = africa_anc_map %>% filter(category == "Gradient"),
+#     aes(fill = hiv_decline),
+#     color = "black"
+#   ) +
+#   scale_fill_viridis_c(
+#     option = "viridis",
+#     na.value = "grey80",
+#     name = "percent (%) change\nin HIV testing",
+#     limits = c(0, 50),
+#     direction = 1,
+#     #guide = F
+#     
+#   ) +
+#   
+#   # New fill scale for categorical values
+#   ggnewscale::new_scale_fill() +
+#   
+#   # Categorical layers (No Data & Selected Countries)
+#   geom_sf(
+#     data = africa_anc_map %>% filter(category %in% c("No Data", "Selected Countries")),
+#     aes(fill = category),
+#     # Map fill to category
+#     color = "black"
+#   ) +
+#   scale_fill_manual(
+#     name = NULL,
+#     values = c(
+#       "Selected Countries" = "grey80",
+#       "No Data" = "white"
+#     ),
+#     labels = c("Selected Countries" = "No Data",
+#                "No Data" = "No Decline")
+#     
+#     
+#   ) +
+#   
+#   # Theme and labels
+#   theme_minimal() +
+#   theme(
+#     axis.text = element_blank(),
+#     axis.ticks = element_blank(),
+#     panel.grid = element_blank(),
+#     plot.title = element_text(hjust = 0.5,
+#                               # Center the title
+#                               face = "bold",
+#                               # Make the title bold
+#                               size = 12)
+#   ) +
+#   #labs(title = "ANC")
+#   labs(title = "Percent (%) Change in HIV Testing at \nAntenatalcare (ANC) Testing from 2017 to 2023")
+# 
+# plot_africa_aware_male
+# ggsave(
+#   plot = plot_africa_aware_male,
+#   file = paste0(
+#     path_out,
+#     "/africa_geograph_ANC male status awareness change from 2023 to 2017.png"
+#   ),
+#   width = 5,
+#   height = 5,
+#   dpi = 500,
+#   scale = 1
+# )
+# 
+# 
+# 
 #==== counter geographicalstatus awarness====
 
 ## -----female aware ----
@@ -1040,7 +1045,7 @@ for (i in 1:length(aware_agg_simul_diff_Male)) {
   cnt = names(aware_agg_simul_diff_Male)[i]
   print(cnt)
   PROPAWARE = subset(
-    aware_agg_simul_diff_Female[[cnt]]$out_simul_aware_all,
+    aware_agg_simul_diff_male[[cnt]]$out_simul_aware_all,
     age = c("15-99"),
     year = 2015:2023,
     sex = "male"
@@ -1668,7 +1673,7 @@ for (i in 1:length(aware_agg_simul_diff_Male)) {
   
 }
 # ----unaware----
-# make_country = readRDS("anc testing/data/make_country_simul_final.rds")
+# make_country = readRDS("data/make_country_simul_final.rds")
 unaware_pre = as.data.frame(matrix(nrow = 465, ncol = 3000, data = 0))
 unaware_counter_pre = as.data.frame(matrix(nrow = 465, ncol = 3000, data = 0))
 
@@ -1792,14 +1797,14 @@ unaware_counter_b[24,c(9,6,7)]
 #find PLHIV prop due to declines
 unaware_male_increase = subset(getci(cbind(
   unaware_counter[, (1:5)],
-  (unaware_pre - unaware_counter_pre)/unaware_pre)),
+  (unaware_pre - unaware_counter_pre)/unaware_counter_pre)),
   (sex == "male" & agegr == "15+"))
 
 
 unaware_male_increase$mid = subset(cbind(
   unaware_counter[, (1:5)],
   apply(
-    X = (unaware_pre - unaware_counter_pre)/unaware_pre,
+    X = (unaware_pre - unaware_counter_pre)/unaware_counter_pre,
     MARGIN = 1,
     FUN = stats::quantile,
     probs = c(0.5),
@@ -1814,11 +1819,81 @@ unaware_male_increase[24,c(8,6,7)]
 #find PLHIV prop due to declines
 unaware_female_increase = subset(getci(cbind(
   unaware_counter[, (1:5)],
-  (unaware_pre - unaware_counter_pre)/unaware_pre)),
+  (unaware_pre - unaware_counter_pre)/unaware_counter_pre)),
   (sex == "female" & agegr == "15+"))
 
 
 unaware_female_increase$mid = subset(cbind(
+  unaware_counter[, (1:5)],
+  apply(
+    X = (unaware_pre - unaware_counter_pre)/unaware_counter_pre,
+    MARGIN = 1,
+    FUN = stats::quantile,
+    probs = c(0.5),
+    na.rm = TRUE
+  )
+),
+(sex == "female" &
+   agegr == "15+"))[, 6]
+
+unaware_female_increase[24,c(8,6,7)]*100
+
+# of PLHIV how many were due to diagnoses
+#find % increase in PLHIV due to declines
+unaware_counter_b = subset(getci(cbind(
+  unaware_counter[, (1:5)],
+  (unaware_pre)/unaware_counter_pre)),
+  (sex == "both" & agegr == "15+"))
+
+
+unaware_counter_b$count = "counter"
+unaware_counter_b$mid = subset(cbind(
+  unaware_counter[, (1:5)],
+  apply(
+    X = (unaware_pre)/unaware_counter_pre,
+    MARGIN = 1,
+    FUN = stats::quantile,
+    probs = c(0.5),
+    na.rm = TRUE
+  )
+),
+(sex == "both" &
+   agegr == "15+"))[, 6]
+
+unaware_counter_b[24,c(9,6,7)]
+
+0.1254025 *8
+# for abstract/paper male/female PLHIV prop
+#find PLHIV prop due to declines
+unaware_male_prop = subset(getci(cbind(
+  unaware_counter[, (1:5)],
+  (unaware_pre - unaware_counter_pre)/unaware_pre)),
+  (sex == "male" & agegr == "15+"))
+
+
+unaware_male_prop$mid = subset(cbind(
+  unaware_counter[, (1:5)],
+  apply(
+    X = (unaware_pre - unaware_counter_pre)/unaware_pre,
+    MARGIN = 1,
+    FUN = stats::quantile,
+    probs = c(0.5),
+    na.rm = TRUE
+  )
+),
+(sex == "male" &
+   agegr == "15+"))[, 6]
+
+unaware_male_prop[24,c(8,6,7)]
+
+#find PLHIV prop due to declines
+unaware_female_prop = subset(getci(cbind(
+  unaware_counter[, (1:5)],
+  (unaware_pre - unaware_counter_pre)/unaware_pre)),
+  (sex == "female" & agegr == "15+"))
+
+
+unaware_female_prop$mid = subset(cbind(
   unaware_counter[, (1:5)],
   apply(
     X = (unaware_pre - unaware_counter_pre)/unaware_pre,
@@ -1831,7 +1906,7 @@ unaware_female_increase$mid = subset(cbind(
 (sex == "female" &
    agegr == "15+"))[, 6]
 
-unaware_female_increase[24,c(8,6,7)]
+unaware_female_prop[24,c(8,6,7)]*100
 
 
 
@@ -2151,3 +2226,7 @@ unaware_obs_tot_m$mid = subset(cbind(
 (sex == "male" &
    agegr == "15+"))[, 6]
 
+unaware_obs_tot_m %>% 
+  filter(year == 2023)
+unaware_obs_tot_f %>% 
+  filter(year == 2023)

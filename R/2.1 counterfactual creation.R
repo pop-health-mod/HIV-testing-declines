@@ -15,7 +15,7 @@ Counter_years_fun <- function(make_country){
   
   # find group indices( convert mod total pop age spans *66* to HTS rate age spans *9*)
   group_indices <- rep(seq_along(fp$ss$h.ag.span[1:9]), fp$ss$h.ag.span[1:9])  # Expands to match asfr rows
-  
+  i = 26
   for(i in 1:length(make_country)){
     cnt = names(make_country)[i]
     print(cnt)
@@ -110,7 +110,7 @@ human_counter_years[,c(1:3,6)]
 # save counter factual
 saveRDS(
   object = counter_years,
-  file = here::here('anc testing/data/counter_years.rds')
+  file = here::here('data/counter_years.rds')
 )
 
 
@@ -299,12 +299,13 @@ table(human_counter_years_ANC$start)
 human_counter_years_ANC$effect = human_counter_years_ANC$value_min/human_counter_years_ANC$value_max
 
 
-human_counter_years_ANC[,c(1,2,3,6)]
+human_counter_years_ANC[,c(1,2,3)] %>% 
+  arrange(country)
 
 
 saveRDS(
   object = counter_years,
-  file = here::here('anc testing/data/counter_anc_years.rds')
+  file = here::here('data/counter_anc_years.rds')
 )
 
 # ---- identify combined declines ----

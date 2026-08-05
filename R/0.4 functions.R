@@ -80,3 +80,56 @@ dpsub <- function(tag, rows, cols, tagcol=1){
   dp[which(dp[,tagcol]==tag)+rows, cols]
 }
 
+sex_to_gender <- function(sex){
+  gender <- ifelse(tolower(sex) == "female","Women",ifelse(tolower(sex) == "male","Men",stop("missing sex")))
+  gender
+  }
+
+
+# extract arbitrary
+pool_age_groups <- function(obj_all,
+                            age_grps  = c("15-24","25-34", "35-49", "50-99"),
+                            sex_grps = c("male","female"),
+                            age_label = paste(age_grps, collapse = "+"),
+                            sex_label = paste(sex_grps, collapse = "+")) {
+  
+  target_order <- c("year", "age", "sex", "time_dx_avg", "time_dx_med",
+                    "prb6mo", "prb1yr", "prb2yr", "prb5yr", "prb500cd4",
+                    "prb350cd4", "propdx", "sampi", "w")
+  
+  obj_all <- obj_all[order(names(obj_all))]
+  
+  lapply(obj_all, function(cnt_obj) {
+    dt <- data.table::as.data.table(cnt_obj$out_simul_tdx_all$groups)[age %in% age_grps & sex %in% sex_grps]
+    
+    pooled <- dt[, .(
+      age         = age_label,
+      sex         = sex_label,
+      time_dx_avg = weighted.mean(time_dx_avg, w),
+      time_dx_med = weighted.mean(time_dx_med, w),
+      prb6mo      = weighted.mean(prb6mo,    w),
+      prb1yr      = weighted.mean(prb1yr,    w),
+      prb2yr      = weighted.mean(prb2yr,    w),
+      prb5yr      = weighted.mean(prb5yr,    w),
+      prb500cd4   = weighted.mean(prb500cd4, w),
+      prb350cd4   = weighted.mean(prb350cd4, w),
+      propdx      = weighted.mean(propdx,    w),
+      w           = sum(w)
+    ), by = .(year, sampi)]
+    
+    pooled[, `:=`(age = as.character(age), sex = as.character(sex))]
+    data.table::setcolorder(pooled, target_order)
+    data.table::setkey(pooled, year)
+    list(out_simul_tdx_all = pooled)
+  })
+}
+
+# extracts pooled objects
+extract_pooled <- function(obj_all) {
+  obj_all <- obj_all[order(names(obj_all))]          # alphabetical countries
+  lapply(obj_all, function(cnt_obj) {
+    dt <- data.table::as.data.table(cnt_obj$out_simul_tdx_all$pooled)
+    list(out_simul_tdx_all = dt)
+  })
+}
+
