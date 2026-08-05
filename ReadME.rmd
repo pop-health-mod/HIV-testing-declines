@@ -54,13 +54,13 @@ if(!"first90" %in% installed.packages()[, "Package"]){
 library(first90)
 
 # source functions
-source(here::here("0.1 extracting pjnz functions.R"))
-source(here::here("0.4 functions.R"))
-source(here::here("0.5 simul-aware-functions.R"))
-source(here::here("0.6 time dx functions.R"))
+source(here::here("R/0.1 extracting pjnz functions.R"))
+source(here::here("R/0.4 functions.R"))
+source(here::here("R/0.5 simul-aware-functions.R"))
+source(here::here("R/0.6 time dx functions.R"))
 
-source(here::here("1.0 simmod.R"))
-source(here::here("1.1 tot test out.R"))
+source(here::here("R/1.0 simmod.R"))
+source(here::here("R/1.1 tot test out.R"))
 
 # create data directory:
 if (!dir.exists("data")) {
@@ -553,8 +553,8 @@ outputs: time to diagnoses and status awareness files
 ----
 ```{r time to diagnoses}
 # reloads here incase a core count adjustment was required
-source(here::here("0.5 simul-aware-functions.R"))
-source(here::here("0.6 time dx functions.R"))
+source(here::here("R/0.5 simul-aware-functions.R"))
+source(here::here("R/0.6 time dx functions.R"))
 
 
 cnt = "Synthetic"
