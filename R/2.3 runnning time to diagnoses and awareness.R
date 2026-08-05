@@ -213,35 +213,7 @@ for (i in 1:length(make_country)) {
           }
         }
         
-        # time to diagnosis
-        simul_tdxF = simul_pool_time_dx_agg_prev(
-          samp = samp,
-          mod = make_country[[cnt]]$mod,
-          fp = make_country[[cnt]]$fp,
-          hivdemo_proj = hivdemo_proj_list[[cnt]],
-          pmtct = pmtct_list[[cnt]],
-          year = 2015:2023,
-          std = F,
-          age = c("15-24", "25-34", "35-49", "50-99"),
-          sex = "female",
-          parallel = T
-        )
-        print(1)
-        simul_tdxM = simul_pool_time_dx_agg_prev(
-          samp = samp,
-          mod = make_country[[cnt]]$mod,
-          fp = make_country[[cnt]]$fp,
-          hivdemo_proj = hivdemo_proj_list[[cnt]],
-          pmtct = pmtct_list[[cnt]],
-          year = 2015:2023,
-          std = F,
-          age = c("15-24", "25-34", "35-49", "50-99"),
-          sex = "male",
-          parallel = T
-        )
-
-        print(2)
-
+        
         simul_tdxB = simul_pool_time_dx_agg_prev(
           samp = samp,
           mod = make_country[[cnt]]$mod,
@@ -256,20 +228,10 @@ for (i in 1:length(make_country)) {
         )
         print(3)
 
-        tdx_agg_simul_male[[cnt]]$out_simul_tdx_all = simul_tdxM
-        tdx_agg_simul_female[[cnt]]$out_simul_tdx_all = simul_tdxF
         tdx_agg_simul_both[[cnt]]$out_simul_tdx_all = simul_tdxB
 
-        make_country[[cnt]]$tdx_male$out_simul_tdx_all = simul_tdxM
-        make_country[[cnt]]$tdx_female$out_simul_tdx_all = simul_tdxF
         make_country[[cnt]]$tdx_both$out_simul_tdx_all = simul_tdxB
 
-        saveRDS(tdx_agg_simul_male,
-                paste0(here::here("outputs"),
-                       "/male time to dx.rda"))
-        saveRDS(tdx_agg_simul_female,
-                paste0(here::here("outputs"),
-                       "/female time to dx.rda"))
         saveRDS(tdx_agg_simul_both,
                 paste0(here::here("outputs"),
                        "/both time to dx.rda"))
@@ -277,33 +239,6 @@ for (i in 1:length(make_country)) {
 
         # counterfactual time to diagnosis
         if (!(is.null(samp_1))) {
-          simul_tdxF_counter = simul_pool_time_dx_agg_prev(
-            samp = samp_1,
-            mod = make_country[[cnt]]$mod,
-            fp = make_country[[cnt]]$fp,
-            hivdemo_proj = hivdemo_proj_list[[cnt]],
-            pmtct = pmtct_1,
-            year = 2015:2023,
-            std = F,
-            age = c("15-24", "25-34", "35-49", "50-99"),
-            sex = "female",
-            parallel = T)
-          
-          print(4)
-          
-          simul_tdxM_counter = simul_pool_time_dx_agg_prev(
-            samp = samp_1,
-            mod = make_country[[cnt]]$mod,
-            fp = make_country[[cnt]]$fp,
-            hivdemo_proj = hivdemo_proj_list[[cnt]],
-            pmtct = pmtct_1,
-            year = 2015:2023,
-            std = F,
-            age = c("15-24", "25-34", "35-49", "50-99"),
-            sex = "male",
-            parallel = T)
-          
-          print(5)
           
           simul_tdxB_counter = simul_pool_time_dx_agg_prev(
             samp = samp_1,
@@ -319,28 +254,10 @@ for (i in 1:length(make_country)) {
           
           print(6)
           
-          tdx_agg_simul_male_counter[[cnt]]$out_simul_tdx_all = simul_tdxM_counter
-          tdx_agg_simul_female_counter[[cnt]]$out_simul_tdx_all = simul_tdxF_counter
           tdx_agg_simul_both_counter[[cnt]]$out_simul_tdx_all = simul_tdxB_counter
           
-          make_country[[cnt]]$tdx_male_counter$out_simul_tdx_all = simul_tdxM_counter
-          make_country[[cnt]]$tdx_female_counter$out_simul_tdx_all = simul_tdxF_counter
           make_country[[cnt]]$tdx_both_counter$out_simul_tdx_all = simul_tdxB_counter
           
-          saveRDS(
-            tdx_agg_simul_male_counter,
-            paste0(
-              here::here("outputs"),
-              "/male time to dx counter.rda"
-            )
-          )
-          saveRDS(
-            tdx_agg_simul_female_counter,
-            paste0(
-              here::here("outputs"),
-              "/female time to dx counter.rda"
-            )
-          )
           saveRDS(
             tdx_agg_simul_both_counter,
             paste0(

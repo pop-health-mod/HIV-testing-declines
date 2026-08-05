@@ -1,11 +1,11 @@
-hivdemo_proj_list <- readRDS(paste0(path_anc, "/data/hivdemo_proj_dt_cnt.rds"))
+hivdemo_proj_list <- readRDS(here::here("data/hivdemo_proj_dt_cnt.rds"))
 
-pmtct_list <- readRDS(paste0(path_anc, "/data/pmtct_list_cnt.rds"))
+pmtct_list <- readRDS("data/pmtct_list_cnt.rds")
 
-source(paste0(path_anc, "/1.0 simmod.R"))
-source(paste0(path_anc, "/1.1 tot test out.R"))
-source(paste0(path_anc, "/0.6 time dx functions.R"))
-source(paste0(path_anc, "/0.5 simul-aware-functions.R"))
+source(here::here("1.0 simmod.R"))
+source(here::here("1.1 tot test out.R"))
+source(here::here("0.6 time dx functions.R"))
+source(here::here("0.5 simul-aware-functions.R"))
 library(Rcpp)
 library(Matrix)
 library(first90)
@@ -17,7 +17,7 @@ library(gridExtra)
 library(data.table)
 
 
-img_dir <- here::here("outputs", "country_png")
+img_dir <- here::here("outputs/AHD/", "country_png")
 dir.create(img_dir, recursive = TRUE, showWarnings = FALSE)
 
 # safe filename
